@@ -1,0 +1,67 @@
+/*******************************************************************
+/*  File Name:  CONTROL.AML
+/*
+/*  Purpose:  
+/*
+/*  Programmer:  Barbara Masks
+/*
+/*  Date:  January 1993
+/*
+/*  ID:  $Id: control.aml,v 2.1 1994/03/30 19:45:28 marks Exp $
+/*******************************************************************
+
+/*
+/*  call AML to perform setup operations
+/*
+
+&run ap_setup
+
+
+/*  
+/*  Loop over all class types
+/*
+
+&sv .err_flag = 0
+&sv .num_patch_types = 0
+&sv i = %.mincode% 
+
+&do &while %i% le %.maxcode%
+   &type CLASS = %i%
+   &if %.background% = .true. &then 
+      &if %i% = %.bckgrnd% &then &goto next_i
+
+   clearsel
+   res %.cover% poly $recno gt 1       /* all but universal polygon
+      
+
+/*
+/*  select all the polygons in the current class
+/*
+   res %.cover% poly %.patchtype% = %i% 
+   &sv num = [extract 1 [show select %.cover% poly]]
+   &sv .npatches.%i% = %num%
+
+/*
+/*  if there are polygons in this class, calculate indices ...
+/*
+   &if %num% gt 0 &then &do
+      &sv .num_patch_types = %.num_patch_types% + 1
+
+      &run patch  %i% %num%           /* calc & print patch indices
+      &if %.err_flag% = -1 &then &goto done
+
+      &run class  %i%                 /* calc & print class indices
+      &if %.err_flag% = -1 &then &goto done
+
+   &end
+
+   &label next_i
+   &sv i = %i% + 1
+&end 
+
+&run land                      /* calc & print landscape indices
+
+&label done
+&type AML COMPLETE!!
+quit                           /* leave arcplot
+&return

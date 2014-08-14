@@ -1,0 +1,140 @@
+/********************************************************************
+/*  File Name:  FRAGSTATS.AML
+/*  
+/*  Purpose:  Calculates various fragmentation indices defined
+/*	by Kevin McGarigal.
+/*
+/*  	The required parameters may be passed on the command line.
+/*   	If the program is run without command line arguments, then
+/*  	the user will be prompted for the necessary inputs.
+/*
+/*  Notes:
+/*   	1.  This aml only runs in arc/info 6.x.
+/*      2.  Several C programs are called by this aml:
+/*              edgecon
+/*              regress
+/*		wrtpatch
+/*		wrtclass
+/*		wrtland
+/*      3.  The input coverage must have an attribute that contains
+/*		patch type codes.  Sequential integer values are
+/*     		expected (i.e. an attribute called "class" defined
+/*	        as 4,4,b might have values ranging from 1 to 27).
+/*              Patches within the landscape must have positive values.
+/*		Patches outside the landscape (the landscape border)
+/*		may be included so that indices requiring adjacency
+/*		information can be calculated for patches bordering
+/*              the landscape boundary.  These landscape border polygons
+/*		should be set to a negative patch type code.
+/*      4.  The input coverage may have a character attribute that 
+/*              describes each numeric class above (10 chars or less)
+/*      5.  The input coverage may have an attribute that contains
+/*		a unique ID for each patch.
+/*	7.  The input polygon coverage must also be built for lines.
+/*
+/*
+/*  Passed Parameters:
+/*	.cover:      name of input polygon coverage (must also be
+/*		     built for lines)
+/*
+/*	.basename:   basename for output files.  Four files are 
+/*		     created: 
+/*			basename.full - a formatted ascii file
+/*			       containing all the patch, class, 
+/*			       and landscape level indices in a
+/*			       viewable format.
+/*			basename.patch - an ascii file containing
+/*			       patch level indices in a format
+/*			       suitable for entry to database 
+/*			       management programs.
+/*			basename.class - an ascii file containing
+/*			       class level indices in a format
+/*			       suitable for entry to database 
+/*			       management programs.
+/*			basename.land - an ascii file containing
+/*			       landscape level indices in a format
+/*			       suitable for entry to database 
+/*			       management programs.
+/*
+/*	.patchtype:  name of attribute containing patch type codes
+/* 
+/*	.edge_dist:  distance from edge to buffer inside each patch
+/*		     for interior habitat.
+/*
+/* 	.bckgrnd:  background class to be ignored in all calculations
+/*		   (optional)
+/*
+/*	.max_patch_types:  maximum number of classes possible in the
+/*		     landscape (optional)
+/*
+/*	.edgecon_file:  name of file containing weights for each 
+/*		     combination of patch types (optional)
+/*
+/*	.patch:	     name of attribute containing patch ID's 
+/*		     (optional)
+/*
+/*	.descriptor: name of attribute containing a character 
+/*		     descriptor for each patch type code (optional)
+/*
+/*	.bound_weight: proportion (equivalent to contrast weight) of
+/*		     the landscape boundary and background class edges
+/*	             to be considered edge (default 0)
+/*
+/*	.patch_stats: a "y" means printout patch level statistics
+/*
+/*	.class_stats: a "y" means printout class level statistics
+/*
+/*	.path:       path to directory containing fragstats AMLs 
+/*		     and C programs
+/*
+/*  Programmer:  Barbara Marks
+/*
+/*  Date:  September 1993
+/*
+/*  ID:  $Id: fragstats.aml,v 2.1 1994/03/30 19:45:41 marks Exp $
+/********************************************************************
+/*
+&args .cover .basename .patchtype .edge_dist .bckgrnd .max_patch_types ~
+  .edgecon_file .patch .descriptor .bound_weight .patch_stats ~
+  .class_stats .path
+/*
+/*
+&format 3
+
+/*
+/*  If arguments are not passed to the main AML, call prompt.aml
+/*  to get the necessary inputs.  Otherwise call a routine to 
+/*  verify passed parameters.
+/*
+&if [null %.cover%] &then 
+   &run prompt
+&else
+   &run getargs
+
+&run setup
+
+
+/*
+/*  Setup is complete.  Now call an AML that will calculate and 
+/*  print the patch, class, and landscape level fragmentation
+/*  indices.
+/*
+
+&run control
+
+
+&sv status = [close -all]
+kill %.cover%_b all
+kill %.cover%_2 all
+kill %.cover%_u all
+&sv status = [delete %.cover%.patch.out]
+&sv status = [delete %.cover%.class.out]
+&sv status = [delete %.cover%.land.out]
+&sv status = [delete %.cover%.classlogs]
+&sv status = [delete %.cover%.landlogs]
+&sv status = [delete %.cover%.edgecon]
+&sv status = [delete %.cover%.log.dat]
+&sv status = [delete %.cover%.regress]
+&sv status = [delete %.cover%.temp.dat]
+
+&return

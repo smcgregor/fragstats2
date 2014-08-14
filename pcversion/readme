@@ -1,0 +1,17 @@
+
+
+PC Version of Fragstats
+
+The PC version of fragstats will only run on a 386 or better
+machine.  A math coprocessor is also required.  It should
+run under DOS or Windows.
+
+Fragstats will use disk space to allocate virtual memory.
+The environmental variable TEMP must be set to tell the 
+program where to allocate the swap file, e.g.:
+	
+	SET TEMP=C:\tmp
+
+
+Run the PC version of fragstats exactly the same way as the
+Unix version.

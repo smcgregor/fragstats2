@@ -1,0 +1,346 @@
+			      August 1994
+
+
+			FRAGSTATS (Raster Version)
+
+
+   USAGE:
+
+      fragstats in_image out_file cellsize edge_dist data_type
+          [rows] [cols] [background] [max_classes] [weight_file]
+  	  [id_image] [desc_file] [bound_wght] [diags] [prox_dist]
+          [nndist] [patch_stats] [class_stats]
+
+
+      If fragstats is run without the command line arguments, the user
+      will be prompted for all the necessary inputs.
+	
+
+
+      NOTE:  (1)  use a $ in place of skipped optional parameters
+	     (2)  enter a carriage return for defaults
+
+
+
+      in_image:    The name of the input landscape file.  All patches 
+		   within the landscape of interest must have patch type
+ 		   values greater than or equal to zero.  Patches within
+		   the landscape border (if present) must have values 
+ 		   less than zero.
+
+
+      out_file:    Basename for the output ascii files.  The extensions 
+       {char}	   .patch, .class, .land, and .full will be added to the 
+		   basename.  The output files contain the following 
+		   information: 
+
+		   basename.patch:  Each record contains all the patch
+		      level indices for a given patch separated by spaces.
+
+		   basename.class:  Each record contains all the class 
+		      level indices for a given class separated by spaces.
+
+		   basename.land:  Each record contains all the landscape 
+		      level indices for a given landscape separated by 
+                      spaces. 
+
+	           basename.full:  A file containing patch, class, and
+		      landscape level indices for a given landscape.  This
+		      file is formatted for displaying results.
+
+		   Note that the "basename.patch", "basename.class" and 
+		   "basename.land" files are in a format that should
+ 		   facilitate input to database management programs; they
+  		   are not intended for viewing results (records are very
+		   long).  Also note that if the files already exist, the
+		   information for a given landscape will be appended to
+		   the existing files.
+
+		   (The PC version of fragstats uses the extension .pat,
+ 		   .cla, and .lnd [not .lan so as not to conflict with
+                   ERDAS file extensions.])
+
+
+      cellsize:    The size of cells in meters in the input image.  Cells
+       {float}	   must be square.  (The length of one side of a cell 
+		   should be input.)
+
+
+      edge_dist:   The distance from patch edge in meters to use for
+       {float}     determining core area (interior habitat).  The core area
+		   of a patch is the area remaining after a buffer 
+                   "edge_dist" wide is removed from the edge of a patch.
+
+
+      data_type:   The type of input image file:
+       {int}	   
+		   1 - SVF file;  this is a file created with the arc/info
+		       "gridsvf" command.
+
+		   2 - Ascii file, no header.  Each record should contain 
+		       one image row.  Cell values should be separated by a
+		       comma or a space[s].
+
+	           3 - 8 bit binary file, no header.
+
+		   4 - 16 bit binary file, no header.
+
+ 		   5 - ERDAS image files (4, 8, or 16 bit).
+		       (not IMAGINE files)
+		   
+		   6 - IDRISI image files
+
+
+      rows:        Optional; the number of rows in the input image.  This 
+       {int}       is only required if data_type is 2, 3, or 4.
+
+
+      cols:        Optional; the number of columns in the input image.  
+       {int}	   This is only required if data_type is 2, 3, or 4.
+
+
+      background:  Optional; the value of (interior) background cells.  This
+       {int}	   is only required if there are cells interior or exterior
+		   to the landscape of interest that should be ignored.  
+		   [default is NONE]
+
+		   Background patch cells inside the landscape should have
+		   a positive patch type value.  Background cells in the
+		   landscape border and outside the area of interest should
+		   be set to a negative patch type value (the negative of
+ 		   the value used for interior background patch cells).
+		   The user must enter a positive value for background 
+		   even if the landscape contains only exterior (negative)
+		   background cells.
+		   
+		   Sometimes this convention is difficult to follow.  If 
+		   only one type of background is found in the image (only
+		   interior or only exterior background), fragstats will
+		   verify that each patch has been classified correctly.  If
+		   fragstats finds that an interior background patch has been
+		   incorrectly classified as exterior background, it will be
+		   re-classified as interior background and a message will be
+		   issued.  Incorrectly classified interior background patches
+		   will also be re-classified as exterior, if necessary.  A
+		   warning will be issued about any questionable patches
+		   (background patches along the landscape boundary).
+
+		   If background patches along the landscape boundary are
+		   not classified correctly, the following indices may not
+		   be calculated correctly (class and landscape level):
+		   landscape shape index, total edge, edge density, contrast
+		   weighted edge density, and total edge contrast index.
+		   Beware!
+	  
+      
+      max_classes: Optional; the maximum number of patch types (classes)
+       {int}       that could be present in the landscape.  This is needed
+		   for calculating relative patch richness.  If a value is
+		   not provided, relative patch richness will not be calcu-
+		   lated.
+                   [default is NONE]
+
+
+      weight_file: Optional; the name of an ascii file containing weights
+       {char}	   for each combination of patch type (class). Each record
+		   should contain the numeric representation of two patch
+		   types and a weight, separated by a comma or a space[s].
+		   Weights should range in value from 0 to 1.  For example:
+
+		        1,2,.25
+			1,3,.32
+			1,4,.60
+			2,3,.45    etc.
+
+		   These weights represent the magnitude of edge contrast
+		   between adjacent patch types.  If a file is provided,
+		   these weights are used to calculate the contrast weighted
+		   edge indices.
+		   [default is NONE]
+
+		   NOTE:  Background patch type values should NOT be 
+		   included in this file.  Also, a blank line will cause
+		   fragstats to blow up!
+
+      id_image:    Optional; the method for assigning patch IDs to each 
+       {char}	   patch in the landscape:
+ 
+		   1 -  Create and output an image that contains unique
+                        ID's for each patch.  This allows the user to relate
+ 		        a set of patch statistics to a specific patch in the
+			landscape.  This file is given the name "in_image",
+	                up to the first dot (".") encountered, and the
+			extension .ID.  For example, for an input image
+		        named test.dat, the output ID image would be test.ID
+ 			(not test.dat.ID, so as to be compatible with DOS).
+			The "data_type" of this image will be the same as
+ 			"in_image".
+
+		   2 -  Do not output an ID image (i.e., it's not important
+	    	        to relate a set of patch statistics to a specific
+		        patch in the landscape).
+
+		   3 -  The name of an ID image to read.  The ID associated
+		        with each patch in this image will be written to
+                        to output files.  The "data_type" of this file must
+		        be the same as "in_image".
+
+		   Input 1,2, or the name of a file. 
+		   [default is 2] 
+
+
+      desc_file:   Optional; the name of an ascii file containing character
+       {char}	   descriptors for each patch type (class).  Each record in
+		   the file should contain a numeric patch type value and
+		   the character descriptor for that patch type, separated
+		   by a comma or a space[s].  For example:
+
+		        1  shrubs
+			2  conifers
+			3  decidious    etc.
+
+		   Descriptive names can not contain spaces!  Use an under-
+		   score ("_") or a hyphen ("-") in place of blanks.
+		   
+		   The parameter MAX_LABEL_LENGTH in the file stats.h 
+                   controls the printed length of labels in the output
+                   files.  Fragstats is distributed with MAX_LABEL_LENGTH 
+		   set to 10.  To change this, edit the file stats.h, change
+		   the parameter to the appropriate length, then re-build 
+		   fragstats.  Note that if MAX_LABEL_LENGTH exceeds 22,
+		   the columns will no longer be aligned in the file
+		   "basename.full".
+
+		   If provided, the character descriptors will be written
+ 		   to the output files.  Otherwise, the numeric patch type
+ 		   is written.
+		   [default is NONE]	
+
+
+      bound_wght:  Optional; the proportion (equivalent to contrast weight)
+       {float}	   of the landscape boundary and background class edges to 
+                   be considered edge.  This affects all the edge indices.
+		   [default is 0.0]
+
+
+      diags:       Optional; should diagonal neighbors be evaluated when
+       {y/n}	   finding the cells that make up a patch.  If not, then 
+		   the 4 cells (not 8) surrounding the cell of interest
+		   will be evaluated.
+		   [default is YES]
+
+	
+      prox_dist:   Optional; the search radius in meters to use for 
+       {float}     calculating the proximity index.  If a value is not
+	     	   provided, the proximity index will not be calculated.
+	           Note that "nndist" (below) must be "yes" if the proximity
+		   index is to be computed as they require the same
+		   calculations.
+		   [default is NONE]
+
+
+      nndist:      Optional; should nearest neighbor distance be calculated?
+       {y/n}       This can be very time consuming on landscapes with 
+		   hundreds of patches per class.  Note that this parameter
+		   must be "yes" in order for the proximity index (above)
+	           to be computed as they are based on the same calculations.
+		   [default is YES]
+
+
+      patch_stats: Optional; should patch indices be written to the output
+       {y/n}       files?  If not, the "basename.patch" file will not be
+		   created and the patch level indices will not be written
+	 	   to the "basename.full" file.  
+		   [default is YES]
+
+
+      class_stats: Optional; should class indices be written to the output
+       {y/n}       files?  If not, the "basename.class" file will not be
+		   created and the class level indices will not be written
+	           to the "basename.full" file. 
+		   [default is YES]
+
+		   
+
+      NOTE:  (1)  use a $ in place of skipped optional parameters
+             (2)  enter a carriage return for defaults
+
+
+
+   NOTES
+
+      (1)  If an index is not calculated, a dot (".") will be output to
+           the "basename.patch", "basename.class", and "basename.land"
+	   files.  The abbreviation "NA" will be output to the 
+	   "basename.full" file.  For nearest neighbor distance, if a
+           patch has no neighbors, "NONE" will be output to "basename.full"
+	   and a dot to the other files.
+
+
+   LIMITATIONS:
+
+      (1)  The input landscape file and the patch ID file are stored as
+           signed shorts (16 bits) in this program.  Therefore, a landscape
+	   may not contain more than 32767 different patch types (this
+	   shouldn't be a problem!).  The input (or output) patch ID image 
+	   is also limited to 32767 unique IDs.
+          
+      (2)  Only the first 12 characters of the input image name are 
+           written to the "basename.patch", "basename.class", and 
+           "basename.land" files.  If the first 12 characters are not
+           unique, it will be difficult to distinguish between sets of
+	   image statistics in the output files.  (This might occur if
+	   fragstats is run on several images with a path specified as 
+      	   part of the image name and the output is directed to the same
+           files.)
+           
+      (3)  This program was developed on a SUN workstation.  It is written
+           in C and compiled with the GNU C compiler.  It may not compile
+           with other C compilers.
+
+      (4)  On DEC or IBM machines, the option of inputting an arc/info SVF
+           file doesn't work due to the different architectures of these
+	   machines and SUNs.   Contact Barbara Marks for new routines to
+           handle this situation.
+	   
+	   
+
+   INSTALLATION:
+        
+      Build fragstats by issuing the command:
+
+           make -f fragstats.make  (or gmake -f fragstats.make)
+
+
+   CONTACT:
+
+      For questions, comments, or to report bugs, please contact:
+
+		Barbara Marks
+		Department of Forest Science
+		Oregon State University
+ 		Forest Sciences Lab 020
+		Corvallis, OR  97331-7501
+		(503) 750-7287
+
+		email:  marks@fsl.orst.edu
+
+
+
+   LIST OF FILES:
+
+     allocmem.c      getpatch.c      rdclass.c       setshort.c
+     bndedge.c       getshort.c      rdweight.c      setup.c
+     ckback.c        getsizes.c      readasci.c      space.c
+     ckedge.c        hdclass.c       readbin.c       space.h
+     class.c         hdland.c        readerd.c       stats.h
+     corearea.c      hdpatch.c       readhd.c        usage.c
+     erdas.h         land.c          readidri.c      writeasc.c
+     fragstats.c     landedge.c      readimg.c       writebin.c
+     fragstats.doc   nndist.c        readsvf.c       writeerd.c
+     fragstats.make  patch.c         regress.c       writeimg.c
+     freemem.c       patch.h         routines.h      writesvf.c
+     getchar.c       patchsiz.c      setchar.c       wrtpatch.c
+     getfloat.c      prompt.c        setfloat.c
+     getint.c        rascont.c       setint.c
+

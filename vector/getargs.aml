@@ -1,0 +1,74 @@
+/*********************************************************************
+/*  File:  GETARGS.AML
+/*
+/*  Purpose:  Verifies command line arguements passed to fragstats.aml
+/*
+/*  Programmer:  Barbara Marks
+/*
+/*  Date:  January 1993
+/*
+/*  ID:  $Id: getargs.aml,v 2.1 1994/03/30 19:45:55 marks Exp $
+/**********************************************************************
+
+
+&type    coverage: %.cover%    
+&type    basename: %.basename%
+&type    patch_att: %.patchtype%    
+&type    edge_dist: %.edge_dist%
+&type    background: %.bckgrnd%
+&type    max_classes: %.max_patch_types%
+&type    weight_file: %.edgecon_file%
+&type    patchid: %.patch%
+&type    descriptor: %.descriptor%
+&type    boundary weight: %.bound_weight%
+&type    patch_stats: %.patch_stats%
+&type    class_stats: %.class_stats%
+&type    file_dir: %.path%
+
+&if [null %.basename%] or [search %.basename% #] ne 0 &then &do
+   &type FATAL ERROR! Required parameter missing:  basename
+   &return
+&end
+&if [null %.patchtype%] or [search %.patchtype% #] ne 0 &then &do
+   &type FATAL ERROR! Required parameter missing:  patch_att
+   &return
+&end
+&if [null %.edge_dist%] or [search %.edge_dist% #] ne 0 &then &do
+   &type FATAL ERROR! Required parameter missing:  edge_dist
+   &return
+&end
+
+
+/*
+/*  Check for skipped optional parameters (a # is used to skip over 
+/*  optional arguments).
+/*
+
+&if [search %.bckgrnd% #] ne 0 or [null %.bckgrnd%] &then
+   &sv .bckgrnd = NONE
+
+&if [search %.max_patch_types% #] ne 0 or [null %.max_patch_types%] &then
+   &sv .max_patch_types = NONE
+
+&if [search %.edgecon_file% #] ne 0 or [null %.edgecon_file%] &then
+   &sv .edgecon_file = NONE
+
+&if [search %.patch% #] ne 0 or [null %.patch%] &then
+   &sv .patch = %.cover%#
+
+&if [search %.descriptor% #] ne 0 or [null %.descriptor%] &then
+   &sv .descriptor = NONE
+
+&if [search %.bound_weight% #] ne 0 or [null %.bound_weight%] &then
+   &sv .bound_weight = 0
+
+&if [search %.patch_stats% #] ne 0 or [null %.patch_stats%] &then
+   &sv .patch_stats = YES
+
+&if [search %.class_stats% #] ne 0 or [null %.class_stats%] &then
+   &sv .class_stats = YES
+
+&if [search %.path% #] ne 0 or [null %.path%] &then 
+   &sv .path = [dir [pathname nofile]]
+
+&return

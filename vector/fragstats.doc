@@ -1,0 +1,234 @@
+
+			       April 1994
+
+			FRAGSTATS (Arc/Info Version)
+
+
+
+   USAGE (from the arc prompt):
+
+          &run fragstats coverage out_file patchtype edge_dist
+             [background] [max_classes] [weight_file] [patch_id]
+             [descriptor] [bound_wght] [write_patch] [write_class] 
+             [path]
+
+
+
+ 	  If fragstats is run without the command line arguments, 
+          the user will be prompted for all the necessary inputs.
+	
+
+          NOTE: (1) use a # in place of skipped optional parameters
+                (2) enter a carriage return for defaults
+
+
+
+      coverage:    The name of the input arc/info coverage.  The coverage
+       {char} 	   must be built for polygons and lines.  
+ 		       
+      out_file:    The basename for the output ascii files.  The extensions
+       {char}	   ".patch", ".class", ".land", and ".full" will be added
+                   to the basename.  The output files contain the following
+		   information:
+
+                   basename.patch:  Each record contains all the patch
+                      level indices for a given patch separated by spaces
+                      (recordsize: 103 bytes).
+
+                   basename.class:  Each record contains all the class
+                      level indices for a given class separated by spaces
+                      (recordsize: 327 bytes).
+
+                   basename.land:  Each record contains all the landscape
+                      level indices for a given landscape separated by
+                      spaces (recordsize: 360 bytes).
+
+                   basename.full:  A file containing patch, class, and
+                      landscape level indices for a given landscape.  This
+                      file is formatted for displaying results.
+
+                   Note that the "basename.patch", "basename.class" and
+                   "basename.land" files are in a format that should
+                   facilitate input to database management programs; they
+                   are not intended for viewing results (records are very
+                   long).  Also note that if the files already exist, the
+                   information for a given landscape will be appended to
+                   the existing files.
+
+      patchtype:   The name of the numeric attribute containing patch type
+       {char}      codes (for example, an attribute "class" defined as
+          	   4,4,b that contains patch type codes ranging from 1 to
+		   50).  Polygons with patch types greater than or equal
+		   zero are considered to be the landscape of interest.
+		   Polygons surrounding the landscape can be included so
+		   that indices requiring adjacency information can be
+		   calculated for polygons bordering the landscape boundary.
+		   These landscape border polygons should be set to a
+		   negative patch type code.  
+
+      edge_dist:   The distance from patch edge in meters to use for
+       {float}     determining core area (interior habitat).  The core area
+                   of a patch is the area remaining after a buffer 
+                   "edge_dist" wide is removed from the edge of a patch.
+
+      background:  Optional; the patch type code of (interior) background 
+       {int}       polygons.  This is only required if there are polygons
+		   interior or exterior to the landscape of interest that
+                   should be ignored.
+                   [default is NONE]
+
+		   NOTE:  Background polygons inside the landscape must
+                   have a positive patch type code.  Background polygons 
+                   in the landscape border must be set to the negative of
+                   the code used for interior background polygons.
+
+      max_classes: Optional; the maximum number of patch types (classes)
+       {int}       that could be present in the landscape.  This is needed
+                   for calculating relative patch richness.  If a value is
+                   not provided, relative patch richness will not be calcu-
+                   lated.
+                   [default is NONE]
+
+      weight_file: Optional; the name of an ascii file containing weights
+       {char}      for each combination of patch type (class). Each record
+                   should contain the numeric representation of two patch
+                   types and a weight, separated by a comma or a space[s].
+                   Weights should range in value from 0 to 1.  For example:
+
+                        1,2,.25
+                        1,3,.32
+                        1,4,.60
+                        2,3,.45    etc.
+
+                   These weights represent the magnitude of edge contrast
+                   between adjacent patch types.  If a file is provided,
+                   these weights are used to calculate the contrast weighted
+                   edge indices.
+                   [default is NONE]
+
+		   NOTE:  Background patch type codes should NOT be included
+                   in this file.
+
+
+      patch_id:    Optional; the name of an attribute that contains unique
+       {char}	   IDs for each polygon.  If an attribute is not provided,
+		   the "coverage"# attribute will be used.
+		   [default is "coverage"#]
+
+      descriptor:  Optional; the name of an attribute that contains
+       {char}	   character descriptors for each patch type code (class).
+		   This attribute must be defined as 10 characters or less
+		   and may not contain spaces.  If provided, the character
+	           descriptors will be written to the output files.  Other-
+                   wise, the numeric patch type code is written.
+		   [default is NONE]
+
+      bound_wght:  Optional; the proportion (equivalent to contrast weight)
+       {float}     of the landscape boundary and background class edges to
+                   be considered edge.  This affects all edge indices.
+                   [default is 0.0]
+
+      write_patch: Optional; should patch indices be written to the output
+       {y/n}       files?  If not, the "basename.patch" file will not be
+                   created and the patch level indices will not be written
+                   to the "basename.full" file.
+                   [default is YES]
+
+
+      write_class: Optional; should class indices be written to the output
+       {y/n}       files?  If not, the "basename.class" file will not be
+                   created and the class level indices will not be written
+                   to the "basename.full" file.
+                   [default is YES]
+
+      path:        Optional; the name of the directory containing the 
+       {char}      fragstats AMLs and C programs.  If these are in a dir-
+	           ectory other than the one the user is running fragstats
+      		   from, the user must set &AMLPATH prior to running
+                   fragstats.
+		   [default is the current directory]
+
+
+
+      NOTE:  (1)  use a # in place of skipped optional parameters
+             (2)  enter a carriage return for defaults
+ 
+
+
+
+
+   NOTES
+
+      (1)  If an index is not calculated, a dot (".") will be output to
+           the "basename.patch", "basename.class", and "basename.land"
+           files.  The abbreviation "NA" will be output to the
+           "basename.full" file.  
+
+
+   LIMITATIONS
+
+      (1)  This AML calls several C programs to perform functions that
+           are either not available in AML, or are difficult to implement.
+	   C programs are called for regrression, operations involving
+	   reading the optional weight file, and for formatting records
+	   in the output files.
+
+      (2)  Many loops in this AML go from the minimum to the maximum
+           patch type value.  Therefore, it is most efficient if the
+	   patch type codes are sequential.  For example, a coverage
+           with 50 patch type codes ranging from 1 to 50 would process
+	   much faster than one with 50 codes scattered throughout the
+	   range 1000 to 2000.
+
+      (3)  This AML was developed on a SUN workstation using arc/info
+           version 6.1.  It will not run with earlier versions of arc/info.
+	   The C programs were compiled with the GNU C compiler and may
+           not compile with other compilers.  
+       
+           
+   INSTALLATION:
+
+      If you are installing fragstats from a DOS compatible floppy,
+      the following files must be renamed once they are in the UNIX
+      environment:
+  
+	   (1)  rename fragstat.aml to fragstats.aml
+                (mv fragstat.aml fragstats.aml)
+       
+	   (2)  rename fragstat.doc to fragstats.doc
+ 		(mv fragstat.doc fragstats.doc)
+
+      To build the C programs required by the AML's run the script
+      "makeall". 
+
+    
+
+   CONTACT:
+      
+      For questions, comments, or to report bugs, please contact:
+           
+			Barbara Marks
+ 			Dept of Forest Science
+			Forest Science Lab 020
+			Oregon State University
+			Corvallis, OR 97331-7501
+			(503) 750-7287
+			
+			email: marks@fsl.orst.edu
+
+
+
+   LIST OF FILES:
+
+        AML's:		        C PROGRAMS:		MISC:
+        -----------             -----------             -----
+	ap_setup.aml 		edgecon.c		makeall
+        class.aml               regress.c               fragstats.doc
+        control.aml             wrtclass.c
+        fragstats.aml           wrtland.c
+	getargs.aml             wrtpatch.c
+        land.aml               
+        patch.aml              
+        prompt.aml             
+	setup.aml
+	wrtparms.aml

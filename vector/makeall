@@ -1,0 +1,16 @@
+#
+echo ... building edgecon
+gcc -o edgecon edgecon.c -lm
+#
+echo ... building regress
+gcc -o regress regress.c -lm
+#
+echo ... building wrtclass
+gcc -o wrtclass wrtclass.c 
+#
+echo ... building wrtland
+gcc -o wrtland wrtland.c
+#
+echo ... building wrtpatch
+gcc -o wrtpatch wrtpatch.c
+

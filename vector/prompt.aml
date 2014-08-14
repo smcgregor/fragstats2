@@ -1,0 +1,166 @@
+/******************************************************************
+/*  File Name:  PROMPT.AML
+/*
+/*  Purpose:  Prompts user for parameters required to run the AML
+/*	fragstats
+/*
+/*  Programmer:  Barbara Marks
+/*
+/*  Date:  January 1993
+/*
+/*  ID:  $Id: prompt.aml,v 2.1 1994/03/30 19:46:56 marks Exp $
+/*******************************************************************
+
+/*
+/*  Get name of coverage.  REQUIRED.
+/*
+&type
+&sv .cover = [response 'Enter name of coverage']
+
+
+/*
+/*  Get the basename for the output ascii files that will contain the
+/*  calculated indices.  Four files will be created/appended to:
+/*     basename.patch:  dump of patch level indices
+/*     basename.class:  dump of class level indices
+/*     basename.land:   dump of landscape level indices
+/*     basename.full:   formatted file containing patch, class, and
+/*		        landscape level indices.
+/*
+/*  REQUIRED.
+/*
+&type
+&type Enter the basename for the output files.  Four files will be
+&type created by adding the extensions .patch, .class, .land, and
+&type .full to the basename.  If the files already exist, the data  
+&type will be appended to the end of the existing files.
+&type
+&sv .basename = [response 'Enter basename for output files']
+
+
+/*
+/*  Ask for the name of the numeric attribute defining the different
+/*  patch types.  The program loops from the minimum positive number
+/*  in this attribute to the maximum; therefore its most efficient
+/*  if a sequential numbering scheme is used.  All patches within
+/*  the landscape must contain positive patch type values.  Patches
+/*  outside the landscape, but included for edge type/length indices,
+/*  should contain negative values.  REQUIRED. 
+/*
+&type
+&sv .patchtype = [response 'Name of attribute defining patch types']
+
+
+/*
+/*  Ask for edge width to use for core area (interior area) statistics.
+/*  REQUIRED.
+/*
+&type
+&sv .edge_dist = [response 'Edge width for core area']
+
+
+/*
+/*  Ask if there is a background class that should be ignored in
+/*  all calculations.
+/*
+&type
+&sv .bckgrnd = [response 'Enter value of (interior) background class {NONE}'~
+ NONE]
+
+
+/*
+/*  Need the maximum possible number of patch types for calculation
+/*  of relative patch richness.  If a number is not supplied, this
+/*  index will be reported as NA.
+/*  OPTIONAL.
+/*
+&type
+&sv .max_patch_types = [response 'Enter maximum number of patch types~
+ {NONE}' NONE] 
+
+
+/*
+/*  Get the name of a file containing weights for each combination
+/*  of patch types.  This file must be ascii and each record must 
+/*  be in the following format:
+/*	class_no,class_no,weight 
+/*
+/*   where class_no is an integer, weight is a real number and
+/*         each value is separated by a comma
+/*
+/*  If there is no weight file, NONE will be returned.
+/*  OPTIONAL.
+/*
+&type
+&sv .edgecon_file = [response 'Enter name of weight file {NONE}' NONE]
+
+
+/*
+/*  Ask for the name of the attribute containing unique patch ID's.
+/*  OPTIONAL.
+/*
+&type
+&type Enter choice for patch ID labels in the output files:
+&type    -  %.cover%#  {default}
+&type    -  Input the name of an attribute containing patch IDs
+&sv .patch = [response 'Enter name of patch ID attribute' %.cover%#]
+
+
+/*
+/*  Ask for the name of the attribute containing character descriptors 
+/*  for each patch type.
+/*  OPTIONAL.
+/*
+&type
+&type Enter the name of an attribute containing patchtype character
+&sv .descriptor = [response 'descriptors {NONE}' NONE]
+
+
+/*
+/*  Ask if the landscape boundary and any background class edges 
+/*  should be treated as edge.
+/*  OPTIONAL.
+/*
+/*  3-14-94 BJM  Modifying so that the user specify the proportion
+/*  background and border edges should be.
+/* 
+&type
+&type What proportion (equivalent to contrast weight) of the
+&type landscape boundary and background class edges should be
+&type considered edge:
+&type    0.  None -  do not count any boundary/background as edge 
+&type                (weight = 0.0)
+&type    1.  All -   count all boundary/background as maximum edge 
+&type                (weight = 1.0)
+&type    2.  Other - specify a fraction between 0 and 1
+&sv .bound_weight = [response 'Enter choice (0,1,or other) {0}' 0]
+
+
+/*
+/*  Ask if patch level indices should be output
+/*
+&type
+&sv .patch_stats = [translate [response 'Output patch level indices {YES}'~
+ YES]]
+
+
+/*
+/*  Ask if class level indices should be output
+/*
+&type
+&sv .class_stats = [translate [response 'Output class level indices {YES}'~
+ YES]]
+
+
+/*
+/*  Ask for the path where the fragstats AMLs and C programs can be
+/*  found (default is the current directory)
+/*
+&sv value = [pathname nofile]
+&sv value = [dir %value%]
+&type
+&type Enter the directory where the fragstats AMLs and C programs
+&sv .path = [response 'reside {CURRENT DIRECTORY}' %value%]
+
+
+&return

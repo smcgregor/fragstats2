@@ -1,0 +1,178 @@
+/*******************************************************************
+/*  File Name:  AP_SETUP.AML
+/*
+/*  Purpose:  Performs setup operations: sets up the relate from
+/*      the line coverage to the polygon coverage, determines if 
+/*	there is a landscape border, finds the min and max class in 
+/*      the landscape, sets some global variables, and initializes
+/*      the edge array.
+/*
+/*  Programmer:  Barbara Masks
+/*
+/*  Date:  January 1993
+/*
+/*  ID:  $Id: ap_setup.aml,v 2.1 1994/03/30 19:44:47 marks Exp $
+/*******************************************************************
+
+/*
+/*  Go to arcplot for calculations
+/*
+arcplot
+mape %.cover%
+
+/*
+/*  set up relate for edge lengths
+/*
+relate add
+left
+%.cover%.pat
+info
+lpoly#
+%.cover%#
+ordered
+rw
+rite
+%.cover%.pat
+info
+rpoly#
+%.cover%#
+ordered
+rw
+[unquote ' ']
+
+
+/*
+/*  Determine if the coverage includes a landscape border.
+/*  Set some flags based on whether or not this exists.
+/*  Also, if a border exists, find the smallest and largest
+/*  class in the border.  Arrays containing adjacency
+/*  information treat negative classes as positive.
+/*
+clearsel
+res %.cover% poly $recno > 1
+&if %.background% = .true. &then
+   res %.cover% poly %.patchtype% < 0 and %.patchtype% ne -%.bckgrnd%
+&else
+   res %.cover% poly %.patchtype% < 0 
+
+&sv num = [extract 1 [show select %.cover% poly]]
+
+&if %num% > 0 &then &do
+   &sv .land_border = .true.
+   statistics %.cover% poly
+      min %.patchtype%
+      max %.patchtype%
+   end
+   &sv .max_class = [calc 0 - [show statistic 1 1]]
+   &sv .min_class = [calc 0 - [show statistic 2 1]]
+&end
+&if %num% = 0 &then &do
+   &sv .land_border = .false.
+   &sv .max_class = -9999
+   &sv .min_class = 9999 
+&end
+
+
+/*
+/*  Now that we have all the information about the input landscape,
+/*  write the input parameters to the output .full file.
+/*
+&r wrtparms
+ 
+/*
+/*  Save some statistics about the landscape
+/*
+clearsel
+res %.cover% poly $recno gt 1          /* all but universal polygon
+res %.cover% poly %.patchtype% ge 0    /* all polys inside the landscape
+&if %.background% = .true. &then       /* exclude background polygons
+   res %.cover% poly %.patchtype% ne %.bckgrnd%
+ 
+/*
+/*  Get the number of patches in the landscape
+/*
+&sv .total_patches = [extract 1 [show select %.cover% poly]]
+ 
+statistics %.cover% poly
+  sum area
+  max area
+  min %.patchtype%
+  max %.patchtype%
+end
+ 
+&sv .total_area = [show statistic 1 1]
+&sv largest = [show statistic 2 1]
+&sv .largest_patch = [calc %largest% / 10000]
+&sv .mincode = [show statistic 3 1]
+&sv .maxcode = [show statistic 4 1]
+ 
+ 
+/*
+/*  Set .max_class = the largest positive class, or smallest
+/*  negative class.  Set .min_class to the smallest positive
+/*  class, or largest negative class.
+/*
+
+&if %.maxcode% > %.max_class% &then 
+   &sv .max_class = %.maxcode%
+&if %.mincode% < %.min_class% &then
+   &sv .min_class = %.mincode%
+
+&type min,max class: %.min_class%, %.max_class% 
+
+/*
+/*  Find the total number of classes in the landscape.
+/*
+/*  For contagion, if there is a landscape border, the total
+/*  number of classes in the landscape includes those in the
+/*  landscape border.
+/*
+
+&sv i = %.min_class%
+&do &while %i% le %.max_class%
+   &sv exist.%i% = 0
+   &sv i = %i% + 1
+&end
+
+clearsel
+res %.cover% poly $recno gt 1
+&if %.background% = .true. &then
+   res %.cover% poly %.patchtype% ne %.bckgrnd%
+&sv num = [extract 1 [show select %.cover% poly]]
+&sv i = 1
+&do &while %i% le %num%
+   &sv class = [show select %.cover% poly %i% item %.patchtype%]
+   &if %class% < 0 &then 
+      &sv class = [calc 0 - %class%]
+   &sv exist.%class% = 1
+   &sv i = %i% + 1
+&end
+
+&sv num = 0
+&sv i = %.min_class%
+&do &while %i% le %.max_class%
+   &sv num =  %num% + [value exist.%i%]
+   &sv i = %i% + 1
+&end
+
+&sv .total_patch_types = %num%
+
+
+/*
+/*  Intialize the array containing the lengths of edge for
+/*  each class versus every other class and the array npatches
+/*
+ 
+&sv i = %.min_class%
+&do &while %i% le %.max_class%
+   &sv .npatches.%i% = 0
+   &sv j = %.min_class%
+   &do &while %j% le %.max_class%
+      &sv .edge.%i%.%j% = 0
+      &sv j = %j% + 1
+   &end
+   &sv i = %i% + 1
+&end
+ 
+ 
+&return

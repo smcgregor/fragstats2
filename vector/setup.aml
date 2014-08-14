@@ -1,0 +1,174 @@
+/****************************************************************
+/*  File:  SETUP.AML
+/*
+/*  Purpose:  Performs setup operations in arc
+/*
+/*  Programmer:  Barbara Marks
+/*
+/*  Date:  January 1993
+/*
+/*  ID:  $Id: setup.aml,v 2.1 1994/03/30 19:47:07 marks Exp $
+/****************************************************************
+
+/*
+/*  Set AMLPATH to the location of the fragstats AMLs and C
+/*  programs.
+/*
+
+&sv num = [show &amlpath npath]
+&if %num% > 0 &then &do
+   &sv aml_path = [show &amlpath]
+   &amlpath %aml_path% %.path%
+&end
+&else
+   &amlpath %.path%
+
+&sv .path = %.path%/
+
+/*
+/*  Make sure the input coverage has been built for both polygons
+/*  and lines.  If not, exit!
+/*
+
+&sv exist = [exist %.cover% -polygon]
+&if %exist% = .false. &then 
+   &stop ERROR!  Polygon coverage %.cover% does not exist!
+&sv exist = [exist %.cover% -arc]
+&if %exist% = .false. &then 
+   &stop ERROR!  Arc coverage %.cover% does not exist! Build for lines!
+
+
+&sv .land_id = %.cover%
+
+/*
+/*  Set flags that determine how to handle optional parameters.
+/*
+&if [type %.bckgrnd%] = -1 &then             /* integer entered
+   &sv .background = .true.
+&else
+   &sv .background = .false.
+
+&if %.background% = .true. &then &do
+   &if %.bckgrnd% < 0 &then &do
+      &type ERROR! The background value entered must be positive,
+      &type even if all background polygons are in the landscape
+      &type border and set to a negative background value.
+      &stop
+   &end
+&end
+
+
+&if [type %.max_patch_types%] = -1 &then     /* integer entered
+   &sv .do_patchrich = .true.
+&else
+   &sv .do_patchrich = .false.
+
+&if [translate %.edgecon_file%] cn 'NONE' &then 
+   &sv .contrast_indices = .false.
+&else
+   &sv .contrast_indices = .true.
+
+&if [translate %.descriptor%] cn 'NONE' &then
+   &sv .classnames = .false.
+&else
+   &sv .classnames = .true.
+
+&if [translate %.patch_stats%] cn 'Y' &then
+   &sv .write_patch = .true.
+&else
+   &sv .write_patch = .false.
+
+&if [translate %.class_stats%] cn 'Y' &then
+   &sv .write_class = .true.
+&else
+   &sv .write_class = .false.
+
+/*
+/*  Set up names for the output ascii files.  See if these files
+/*  exist and set a variable that will indicate whether header
+/*  information needs to be written to the "dump" files.
+/*
+&sv .ffile = %.basename%.full
+&sv .pfile = %.basename%.patch
+&sv .cfile = %.basename%.class
+&sv .lfile = %.basename%.land
+
+&sv .full_init = 1
+&sv .patch_init = 1
+&sv .class_init = 1
+&sv .land_init = 1
+
+&sv file_exists = [exists %.ffile% -file]
+&if %file_exists% = .true. &then &sv .full_init = 0
+
+&sv file_exists = [exists %.pfile% -file]
+&if %file_exists% = .true. &then &sv .patch_init = 0
+
+&sv file_exists = [exists %.cfile% -file]
+&if %file_exists% = .true. &then &sv .class_init = 0
+
+&sv file_exists = [exists %.lfile% -file]
+&if %file_exists% = .true. &then &sv .land_init = 0
+
+/*
+/*  A copy of the image is needed to get edge type information
+/*
+&sv exist [exists %.cover%_2 -coverage]
+&if %exist% = .false. &then
+   copy %.cover% %.cover%_2
+
+/*
+/*  Buffer the input polygon coverage by the core area edge width.
+/*  This will create interior polygons of core area (%edge% distance
+/*  from polygon edges).  Then union this with the input coverage
+/*  to obtain a coverage with all the attributes.
+/*
+/*  Check that the buffer and union coverages don't exist.  If
+/*  they do, use them. 
+/*
+
+&setvar exist [exists %.cover%_b -coverage]
+&if %exist% = .true. &then &do
+   &type
+   &type Buffered coverage exists!!  Using existing coverage ....
+&end
+&if %exist% = .false. &then
+   buffer %.cover% %.cover%_b # # %.edge_dist% # line
+
+
+&setvar exist [exists %.cover%_u -coverage]
+&if %exist% = .true. &then &do
+   &type
+   &type Unioned coverage exists!!  Using existing coverage ....
+&end
+&if %exist% = .false. &then
+   union %.cover% %.cover%_b %.cover%_u
+
+
+/*
+/*  Initialize some global landscape level variables.
+/*
+/*
+&sv .total_area_sq = 0
+&sv .total_corepatches = 0
+&sv .total_corearea = 0
+&sv .total_core_sq = 0
+&sv .total_cindex = 0
+&sv .total_shape = 0
+&sv .total_aw_shape = 0
+&sv .total_fractal = 0
+&sv .total_edgecon = 0
+&sv .total_wt_edgecon = 0
+&sv .total_nndist = 0
+&sv .total_nn_num = 0
+&sv .total_nndist_sq = 0
+&sv .total_aw_fract = 0
+
+
+/*
+/*  delete some variables not required any more ....
+/*
+&delvar  record exist id value
+&delvar  flag temp status 
+
+&return

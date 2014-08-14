@@ -1,0 +1,57 @@
+/******************************************************************
+/*  File:  WRTPARMS.AML
+/*
+/*  Purpose:  Writes Input Parameters to output .full file
+/*
+/*  Programmer:  Barbara Marks
+/*
+/*  Date:  January 1993
+/*
+/*  ID:  $Id: wrtparms.aml,v 2.1 1994/03/30 19:47:22 marks Exp $
+/*****************************************************************
+
+/*
+/*  Open the formatted output file (.full file) and write the input
+/*  parameters to it.
+/*
+ 
+&sv .file = [open %.ffile% status -append]
+&if %status% ne 0 &then &do
+   &type status: %status%
+   &type ERROR! Can not open file: %.ffile%
+   &stop
+&end
+ 
+ 
+&sv date = [date -vfull]
+&sv status = [write %.file% ' ']
+&sv status = [write %.file% ' ']
+&sv status = [write %.file% [quote Date: %date%]]
+&sv status = [write %.file% [quote Coverage: %.cover%]]
+&sv status = [write %.file% [quote Basename for Output Files: %.basename%]]
+&sv status = [write %.file% [quote Patch Type Attribute: %.patchtype% ~
+   Edge Dist: %.edge_dist%]]
+&sv status = [write %.file% [quote Background Class: %.bckgrnd%]]
+&sv status = [write %.file% [quote Max Patch Types Possible: ~
+%.max_patch_types%]]
+&sv status = [write %.file% [quote Weight File: %.edgecon_file%]]
+&sv status = [write %.file% [quote Patch ID Attribute: %.patch% ~
+   Class Names Attribute: %.descriptor%]]
+&if %.land_border% = .true. &then
+   &sv status = [write %.file% 'Input Landscape Contains a Landscape~
+ Border']
+&else
+   &sv status = [write %.file% 'Input Landscape Does Not Contain a ~
+Landscape Border']
+&sv status = [write %.file% [quote Proportion of Boundary/Background ~
+to Count as Edge: %.bound_weight%]]
+&sv status = [write %.file% [quote Write Patch Indices: %.patch_stats%~
+   Write Class Indices: %.class_stats%]]
+&sv status = [write %.file% [quote AML/Program Directory: %.path%]]
+&sv status = [write %.file% ' ']
+&sv status = [write %.file% ' ']
+ 
+ 
+&sv status = [close %.file%]
+
+&return

@@ -1,0 +1,275 @@
+
+FRAGSTATS 1.0
+
+The following bugs were reported and fixed on the dates listed
+below.  If you discover a problem, please consult this list
+before sending mail or calling Barbara Marks at:
+
+	marks@fsl.orst.edu
+	(503)750-7287 (7am - 3pm PST)
+
+
+
+01-05-94 09:30 Barbara Marks
+	VECTOR VERSION
+	Change made to edgecon.c in vector directory.
+	Line 121 was:  fprintf ("\nERROR! .....
+	         s/b:  printf ("\nERROR! ......
+
+
+
+01-07-94 08:30 Barbara Marks
+	RASTER VERSION
+	The following files were modified so that the "read erdas
+	image" option will work in the PC version of fragstats:
+
+		readerd.c
+		writeerd.c
+		fragstats.make
+
+	The following file was also modified by Tom Moore during
+ 	this process:
+
+		readidri.c 
+
+
+02-19-94 11:00 Barbara Marks
+	RASTER VERSION
+	The wrong image was written out as the ID image, if an 
+        ERDAS file was input.  Two changes made to writeerd.c:
+
+	       changed "short i;"  to   "int i;"
+	       changed "fwrite (&image,..."  to  "fwrite (imageptr,..."
+
+	The PC version of fragstats does not reflect this change yet.
+        I'm still waiting to get a new executable from Tom Moore.
+
+	3-9-94  PC version now reflects this change.
+
+
+02-28-94 14:30 Barbara Marks
+	RASTER VERSION
+	Bug in nndist.c -- if the number of exterior cells in a
+	patch exceeds the limit of a signed short int (32767),
+	nndist blows up.  File modified:  nndist.c
+		
+	Also modified rdweight.c for a different reason -- call
+	to setfloat passed ints, should have been shorts.
+
+	The PC version of fragstats does not reflect this change yet.
+        I'm still waiting to get a new executable from Tom Moore.
+
+	3-9-94  PC version now reflects this change.
+
+
+03-09-94 08:10 Barbara Marks
+	PC VERSION
+	Replaced.  Now relects changes made on 2-19 and 2-28.
+
+
+*************************************************************************
+*************************************************************************
+
+FRAGSTATS 2.0
+
+04-10-94 10:00  Barbara Marks
+	FRAGSTATS 2.0 installed; version 1.0 removed.
+	See fragstats2.notes for details
+
+
+04-19-94 07:25  Barbara Marks
+	RASTER VERSION
+	Modified land.c.  Changed the name of the following index in
+	the .full file:
+	   was:  Area-Wght Mean Class Edge Contrast 
+	   s/b:  Area-Weighted Mean Edge Contrast
+
+	VECTOR VERSION
+	Modified wrtclass.c to reflect the same index name change.
+
+	PC VERSION not replaced yet ....
+
+
+05-25-94 12:00 Barbara Marks
+	RASTER VERSION
+	VECTOR VERSION
+	PC VERSION
+
+	I discovered a bug in the way edge lengths were being calculated
+        for landscapes with interior background patches, or background
+	patches within the landscape border.  Many files were modified.
+
+
+	PC VERSION
+ 	Tom Moore fixed bugs in his read/write IDRISI routines.	
+	
+
+07-06-94 11:35 Barbara Marks
+	VECTOR VERSION
+
+	Modified class.aml.  A variable "edgelen" was not initialized to
+	zero.  This would only cause problems if polygons of a class existed,
+	but they were completely surrounded by background, and the user opted
+	to treat background with a weight of zero.  Thus, there would be no
+	class edge (something I never anticipated).
+
+
+07-18-94 12:30 Barbara Marks
+	RASTER VERSION
+
+	Changed line 30 in writeimg.c from "char outfile" to "static char
+	outfile" so that it would compile with the SunOS C compiler (cc).
+
+
+07-19-94 9:10 Barbara Marks
+	RASTER VERSION
+	PC VERSION
+
+	Tom Moore improved the nndist.c routine.  It now runs much faster,
+	especially the PC version. 
+
+
+07-31-94 14:50 Barbara Marks
+	VECTOR VERSION
+
+	Added checks for divide by zero condition in all calculations of
+	fractal dimension.  FRAGSTATS would blow up in the fractal calculation
+        if a patch had an area of 1.  If a patch, class or landscape has an
+	area of 1 (and its not a perfect circle), FRAGSTATS will now set the
+	fractal dimension to "NA".
+
+
+08-15-94 8:00 Barbara Marks
+	VECTOR VERSION
+
+	"stop" statement incorrectly placed in setup.aml -- caused fragstats to
+	exit if a background value was entered.
+
+
+09-14-94 8:00 Barbara Marks
+	VECTOR VERSION
+
+	Stumbled on the 'ln' arithmetic operator in AML.  Removed all calls to
+  	the C program "findlog"; now use this operator.  Added a check that the
+	value entered for background is postive.
+
+09-20-94 6:35 Barbara Marks
+	VECTOR VERSION
+	
+	In fragstats.aml, the lines that deleted the coverage_2, coverage_b and
+	coverage_u were commented out.  Removed the comment so these coverages
+	are deleted when the AML completes.
+
+
+10-03-1994 7:00  Barbara Marks
+	RASTER VERSION
+	PC VERSION
+
+	Changes made to the way background is handled.  New routine created:
+	ckback.c
+
+
+10-04-1994 8:30 Barbara Marks
+	RASTER VERSION
+
+	Bug in the new routine ckback.c fixed.  I was wrongly reclassifying
+        exterior patches to interior.
+
+
+10-05-94 14:25 Barbara Marks
+	RASTER VERSION
+
+	More bug fixes!!  getsizes.c had a major error -- background patches
+ 	were not being considered when determining the largest patch in the
+	landscape, as advertised.  I made minior changes to readasci.c,
+ 	readbin.c, readerd.c, readidri.c, and readsvf.c in the way that
+	background is classified.  A cosmetic change was made to land.c.
+
+
+10-18-94 12:45 Barbara Marks
+	PC VERSION
+
+	New executable built to meet the changes described in the 10-05-94
+ 	raster version fix.
+
+
+10-26-94 2:20 Barbara Marks
+	RASTER
+	VECTOR
+	PCVERSION
+
+	Removed the directories raster, vector, pcversion, and man.  Replaced
+	with a tar and zip file. 
+
+
+11-8-94  7:30 Barbara Marks
+	RASTER
+	PCVERSION
+
+	Fixed error:  if the input image did not contain a dot (".") in the 
+	filename and the user requested an output ID image, the output ID
+	image was given the same name as the input image, and thus over-
+	wrote the input image.
+
+12-30-94 9:35 Barbara Marks
+	VECTOR
+
+	Changed regress.c, called by class.aml and land.aml.  Arc/info 
+	version 7.0 can't read a record that includes an EOF; version
+        6.x could.  Class.aml would blow up on the second read from
+	the file coverage.regress created by regress.c.  A "\n" was 
+	added to the last write in regress.c.
+
+01-18-95 11:50 Barbara Marks
+	RASTER
+	PCVERSION
+
+	Fixed a bug in nearest neighbor calculation (nndist.c).  
+
+
+03-11-95 8:00 Barbara Marks
+	RASTER
+	PCVERSION
+
+	Modified writeimg.c and writeerd.c.  Corrected writeimg.c
+	so that ERDAS 4 bit images were packtype 1 (not 0), and 8 bit
+	images were packtype 0 (not 1).  Modified writeerd.c so that
+	4 bit (ID) images were correctly written out.
+
+
+04-13-95 8:00 Barbara Marks
+	RASTER
+	PCVERSION
+
+	Fixed ckback.c so that it would process a background patch
+	with a size > 32768.  
+
+
+05-31-95 10:00 Barbara Marks
+	VECTOR
+
+	The syntax for the "ln" operator changed in arc/info version 7.03.
+	The old syntax was " [calc %perimeter% ln].  The new syntax is
+	"[calc ln %perimeter%].  The following files were modified to 
+ 	reflect this change:  patch.aml, class.aml, land.aml.
+
+10-05-95 8:00 Barbara Marks
+       	RASTER
+	PCVERSION
+
+	Fixed wrtpatch.c so that patch statistics will be written to
+	the output file if the number of patches/class exceeds
+ 	32767.
+
+01-18-96 8:30 Barbara Marks
+	RASTER
+	PCVERSION
+	
+	Modified readbin.c.  Didn't read in 8-bit binary SIGNED values.
+	Signed bytes were interpreted as unsigned.
+
+02-02-96 8:00  Barbara Marks
+	VECTOR
+
+	Modified wrtclass.c.  The .class file header was modified from
+	"MCA1   CASD1   CACV2"  to "MCA1   CASD1   CACV1".

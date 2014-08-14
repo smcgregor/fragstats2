@@ -1,0 +1,868 @@
+/**********************************************************
+/*  File Name:  CLASS.AML
+/*
+/*  Purpose:  Calculates and prints class level indices.
+/*
+/*  Programmer:  Barbara Marks
+/*
+/*  Date:  January 1993
+/*
+/*  ID:  $Id: class.aml,v 2.1 1994/03/30 19:45:13 marks Exp $
+/**********************************************************
+&args class
+
+&if [null %class%] &then &do
+   &type FATAL ERROR!  Must pass class to class.aml!!
+   &sv .err_flag = -1
+   &return
+&end
+
+&type CLASS LEVEL - CLASS: %class%
+
+
+/*
+/*  initialize class level variables
+/*
+
+&sv num_patches = [value .npatches.%class%]
+&sv sum_area = [value .class_area.%class%]
+&sv sum_area_sq = 0
+&sv max_area = -9999 
+&sv sum_shape = 0
+&sv sum_wt_shape = 0
+&sv sum_fractal = 0
+&sv sum_wt_fract = 0
+&sv sum_core_patches = 0
+&sv sum_corearea = 0
+&sv sum_core_sq = 0
+&sv sum_cindex = 0
+&sv sum_edgecon = 0
+&sv sum_wt_edgecon = 0
+&sv sum_edgeden = 0
+&sv sum_iji = 0
+&sv sum_nndist = 0
+&sv sum_nndist_sq = 0
+&sv num_nn = 0
+&sv j = 1
+
+/*
+/*  loop over all patches in a class
+/*
+&do &while %j% le %num_patches%
+
+   &sv area = [value .area.%j%]
+   &sv sum_area_sq = [calc %sum_area_sq% + ( %area% * %area% ) ]
+   &if %area% > %max_area% &then &sv max_area = %area%
+
+   &sv shape = [value .shape.%j%]
+   &sv sum_shape = %sum_shape% + %shape%
+   &sv sum_wt_shape = %sum_wt_shape% + [calc %shape% * ( %area% /~ 
+      %sum_area% )]
+   &sv .total_aw_shape = %.total_aw_shape% + [calc %shape% * ~
+      ( %area% / ( %.total_area% / 10000 ) )]
+
+   &sv fract = [value .fractal.%j%]
+   &if %fract% > 0 &then &do
+      &sv sum_fractal = %sum_fractal% + %fract%
+      &sv sum_wt_fract = [calc %sum_wt_fract% + ( %fract% * ~
+         ( %area% / %sum_area% ) )]
+      &sv .total_aw_fract = %.total_aw_fract% + [calc %fract% * ~
+         ( %area% / ( %.total_area% / 10000 ) )]
+   &end
+
+   &if [value .ncore_patches.%j%] > 0 &then &do
+      &sv sum_core_patches = %sum_core_patches% + [value .ncore_patches.%j%]
+      &sv carea = [value .core_area.%j%]
+      &sv sum_corearea = %sum_corearea% + %carea%
+      &sv sum_core_sq =  [calc %sum_core_sq% + ( %carea% * %carea% )]
+      &sv cai = [value .corearea_index.%j%]
+      &sv sum_cindex = %sum_cindex% + %cai%
+   &end 
+
+   &if %.contrast_indices% = .true. &then &do
+      &sv sum_edgecon = [calc %sum_edgecon% + [value .edgecon.%j%]]
+      &sv sum_wt_edgecon = [calc %sum_wt_edgecon% +  ~
+         ( [value .edgecon.%j%] * ( %area% / %sum_area% ) )]
+      &sv .total_wt_edgecon = [calc %.total_wt_edgecon% + ~
+         ( [value .edgecon.%j%] * ( %area% / ( %.total_area% / 10000 ) ) )]
+      &sv sum_edgeden = [calc %sum_edgeden% + [value .contrast.%j%]]
+   &end
+
+   &sv j = %j% + 1
+&end
+
+/*
+/*  Accumulate sums for landscape level statistics
+/*
+&sv .total_area_sq = %.total_area_sq% + %sum_area_sq%
+&sv .total_corepatches = %.total_corepatches% + %sum_core_patches%
+&sv .total_corearea = %.total_corearea% + %sum_corearea%
+&sv .total_core_sq = %.total_core_sq% + [calc %sum_corearea% * ~
+   %sum_corearea%]
+&sv .total_cindex = %.total_cindex% + %sum_cindex%
+&sv .total_shape = %.total_shape% + %sum_shape%
+&sv .total_fractal = %.total_fractal% + %sum_fractal%
+&sv .total_nn_num = %.total_nn_num% + %num_nn%
+&sv .total_nndist = %.total_nndist% + %sum_nndist%
+&sv .total_nndist_sq = %.total_nndist_sq% + %sum_nndist_sq%
+&if %.contrast_indices% = .true. &then 
+   &sv .total_edgecon = %.total_edgecon% + %sum_edgecon%
+
+/*
+/*
+/*  Get class edge lengths.  A slightly different edge length
+/*  is needed for total edge, landcape shape index, total edge
+/*  contrast, and interspersion/juxtaposition.  The way these 
+/*  lengths are obtained varies depending on whether or not the
+/*  landscape has a border, and how background/boundary edges 
+/*  are to be treated.
+/*
+/*
+/*  If the coverage contains a landscape border:
+/*  Get the length of edge for all patches in this class plus the
+/*  length of the entire landscape boundary.  This will be used 
+/*  for the class level landscape shape index.
+/*
+
+&if %.land_border% = .true. &then &do
+   asel %.cover% line
+   res %.cover% line left//%.patchtype% = %class% or ~
+                     rite//%.patchtype% = %class%
+   asel %.cover% line left//%.patchtype% < 0 and rite//%.patchtype% ge 0
+   asel %.cover% line rite//%.patchtype% < 0 and left//%.patchtype% ge 0
+/*
+/*  Interior background patch edges are considered to be part of
+/*  the boundary.
+/*
+   &if %.background% = .true. &then 
+      asel %.cover% line rite//%.patchtype% = %.bckgrnd% or ~
+                         left//%.patchtype% = %.bckgrnd%
+   res %.cover% line lpoly# > 1 and rpoly# > 1
+   &sv num = [extract 1 [show select %.cover% line]]
+   &if %num% > 0 &then &do
+      statistics %.cover% line
+         sum length
+      end
+      &sv lshape_edge = [show statistic 1 1]
+   &end
+   &else
+      &sv lshape_edge = 0
+
+/*
+/*  For total edge contrast index, the length of edge for
+/*  patches in this class (regardless of whether they are "true"
+/*  edges or not) is needed.  This also includes edges of patches 
+/*  of this type in the landscape border.
+/*  
+   clearsel
+   res %.cover% line left//%.patchtype% = %class% or ~
+                     rite//%.patchtype% = %class%
+   asel %.cover% line left//%.patchtype% = -%class% or ~
+                     rite//%.patchtype% = -%class%
+   unsel %.cover% line left//%.patchtype% < 0 and ~
+                     rite//%.patchtype% < 0
+   &if %.background% = .true. &then &do
+      asel %.cover% line left//%.patchtype% = -%class% and ~
+                         rite//%.patchtype% = %.bckgrnd%
+      asel %.cover% line rite//%.patchtype% = -%class% and ~
+                         left//%.patchtype% = %.bckgrnd%
+   &end
+   unsel %.cover% line rpoly# = 1 or lpoly# = 1
+   &sv num = [extract 1 [show select %.cover% line]]
+   &if %num% > 0 &then &do
+      statistics %.cover% line
+         sum length
+      end
+      &sv contrast_edge = [show statistic 1 1]
+   &end
+   &else
+      &sv contrast_edge = 0
+   
+/*
+/*  For total class edge, get the edge length for all patches
+/*  in this class.  Don't count as an edge an edge between a
+/*  patch of type "x" in the landscape, and a bordering patch of 
+/*  type "x" outside the landscape.  (Remember that patches outside
+/*  the landscape have negative "patchtype" values.)  However, do
+/*  count an edge between a patch of class "x" outside the landscape
+/*  and any patch inside the landscape.
+/*
+   unsel %.cover% line rite//%.patchtype% = -%class% and ~
+                       left//%.patchtype% = %class%
+   unsel %.cover% line left//%.patchtype% = -%class% and ~
+                       rite//%.patchtype% = %class%
+/*
+/*  11-10-93 BJM  If there are background patches inside the landscape
+/*  and the user selected not to treat background as edge, then don't
+/*  count as edge any segment of this class that borders a background
+/*  patch.
+/*
+/*  3-14-94 BJM  User now has the option of assigning a proportion
+/*  to background and boundary edges.  No longer constrained to
+/*  treating these edges as minimum or maximum contrast.
+/*
+   &sv bound_len = 0
+   &if %.background% = .true. &then &do
+      &if %.bound_weight% > 0 and %.bound_weight% < 1 &then &do
+         cursor temp declare %.cover% line rw
+         cursor temp open
+         &do &while %:temp.AML$NEXT% = .true.
+            &if [value :temp.rite//%.patchtype%] = %.bckgrnd% or ~
+                [value :temp.left//%.patchtype%] = %.bckgrnd% &then
+                   &sv bound_len = %bound_len% + %:temp.length%
+            &else &if [value :temp.rite//%.patchtype%] = -%.bckgrnd% or ~
+                [value :temp.left//%.patchtype%] = -%.bckgrnd% &then
+                   &sv bound_len = %bound_len% + %:temp.length%
+            cursor temp next
+         &end
+         cursor temp close
+         cursor temp remove
+         &sv bound_len = [calc %bound_len% * %.bound_weight%]
+      &end
+      &if %.bound_weight% < 1 &then &do
+         unsel %.cover% line rite//%.patchtype% = %class% and ~
+                             left//%.patchtype% = %.bckgrnd%
+         unsel %.cover% line left//%.patchtype% = %class% and ~
+                             rite//%.patchtype% = %.bckgrnd%
+         unsel %.cover% line rite//%.patchtype% = -%class% and ~
+                             left//%.patchtype% = %.bckgrnd%
+         unsel %.cover% line left//%.patchtype% = -%class% and ~
+                             rite//%.patchtype% = %.bckgrnd%
+         unsel %.cover% line rite//%.patchtype% = %class% and ~
+                             left//%.patchtype% = -%.bckgrnd%
+         unsel %.cover% line left//%.patchtype% = %class% and ~
+                             rite//%.patchtype% = -%.bckgrnd%
+      &end
+   &end
+
+   &sv edgelen = 0
+
+   &sv num = [extract 1 [show select %.cover% line]]
+   &if %num% > 0 &then &do
+      statistics %.cover% line
+         sum length
+      end
+      &sv edgelen = [show statistic 1 1]
+      &sv class_edge = [calc %edgelen% + %bound_len%]
+   &end
+   &else
+      &sv class_edge = 0
+
+/*
+/*  For interspersion/juxtaposition, the edge length consists of
+/*  all true edge segments in the class; but it excludes any
+/*  segments bordering background patches.
+/*
+   &if %.background% = .true. &then &do
+      unsel %.cover% line rite//%.patchtype% = %class% and ~
+                          left//%.patchtype% = %.bckgrnd%
+      unsel %.cover% line left//%.patchtype% = %class% and ~
+                          rite//%.patchtype% = %.bckgrnd%
+      unsel %.cover% line rite//%.patchtype% = -%class% and ~
+                          left//%.patchtype% = %.bckgrnd%
+      unsel %.cover% line left//%.patchtype% = -%class% and ~
+                          rite//%.patchtype% = %.bckgrnd%
+      unsel %.cover% line rite//%.patchtype% = %class% and ~
+                          left//%.patchtype% = -%.bckgrnd%
+      unsel %.cover% line left//%.patchtype% = %class% and ~
+                          rite//%.patchtype% = -%.bckgrnd%
+      &sv num = [extract 1 [show select %.cover% line]]
+      &if %num% > 0 &then &do
+         statistics %.cover% line
+            sum length
+         end
+      &end
+      &sv iji_edge = [show statistic 1 1]
+   &end
+   &else
+      &sv iji_edge = %edgelen%
+&end
+
+/*
+/*  If the coverage does NOT contain a landscape border, and the user
+/*  wants to count border segments as maximum contast edge (weight = 1), 
+/*  then:
+/*
+&if %.land_border% = .false. and %.bound_weight% = 1 &then &do
+   asel %.cover% line
+   res %.cover% line left//%.patchtype% = %class% or ~
+                     rite//%.patchtype% = %class%
+   asel %.cover% line lpoly# = 1 or rpoly# = 1         /* landscape boundary
+/*
+/*  4-27-94 BJM  Include interior background patches
+/*
+   &if %.background% = .true. &then
+      asel %.cover% line left//%.patchtype% = %.bckgrnd% or ~
+                         rite//%.patchtype% = %.bckgrnd%
+
+   &sv num = [extract 1 [show select %.cover% line]]
+   &if %num% > 0 &then &do
+      statistics %.cover% line
+         sum length
+      end
+      &sv lshape_edge = [show statistic 1 1]
+   &end
+   &else
+      &sv lshape_edge = 0
+
+   asel %.cover% line
+   res %.cover% line left//%.patchtype% = %class% or ~
+                     rite//%.patchtype% = %class%
+   &sv num = [extract 1 [show select %.cover% line]]
+   &if %num% > 0 &then &do
+      statistics %.cover% line
+         sum length
+      end
+      &sv class_edge = [show statistic 1 1]
+   &end 
+   &else
+      &sv class_edge = 0
+
+   &sv contrast_edge = %class_edge%
+
+/*
+/*  For interspersion/juxtaposition, the landscape boundary segments 
+/*  should not be included.  
+/*
+   res %.cover% line lpoly# > 1 and rpoly# > 1
+
+/*
+/*  11-10-93 BJM  Any class edge that borders an interior background
+/*  patch should also be excluded from this length.
+/*
+   &if %.background% = .true. &then &do
+      unsel %.cover% line left//%.patchtype% = %class% and ~
+                          rite//%.patchtype% = %.bckgrnd%
+      unsel %.cover% line rite//%.patchtype% = %class% and ~
+                          left//%.patchtype% = %.bckgrnd%
+   &end
+   &sv num = [extract 1 [show select %.cover% line]]
+   &if %num% > 0 &then &do
+      statistics %.cover% line
+         sum length
+      end
+      &sv iji_edge = [show statistic 1 1]
+   &end
+   &else
+      &sv iji_edge = 0
+&end
+
+/*
+/*  If the coverage does not contain a landscape border, and the user
+/*  does NOT want to count border segments as "edge", then:
+/*
+/*  3-15-94 BJM  User now has the option of assigning a proportion to
+/*  boundary and background edge segments
+/*
+&if %.land_border% = .false. and %.bound_weight% < 1 &then &do
+   asel %.cover% line
+   res %.cover% line left//%.patchtype% = %class% or ~
+                     rite//%.patchtype% = %class%
+/*
+/*  4-27-94 BJM  Add interior background patch edges to boundary
+/*
+   &if %.background% = .true. &then
+      asel %.cover% line left//%.patchtype% = %.bckgrnd% or ~
+                         rite//%.patchtype% = %.bckgrnd%
+
+   asel %.cover% line lpoly# = 1 or rpoly# = 1   
+   &sv num = [extract 1 [show select %.cover% line]]
+   &if %num% > 0 &then &do
+      statistics %.cover% line
+         sum length
+      end
+      &sv lshape_edge = [show statistic 1 1]
+   &end
+   &else
+      &sv lshape_edge = 0
+
+     
+   asel %.cover% line
+   res %.cover% line left//%.patchtype% = %class% or ~
+                     rite//%.patchtype% = %class%
+   &sv num = [extract 1 [show select %.cover% line]]
+   &if %num% > 0 &then &do
+      statistics %.cover% line
+         sum length
+      end
+      &sv contrast_edge = [show statistic 1 1]
+   &end
+   &else
+      &sv contrast_edge = 0
+
+/*
+/*  11-10-93 BJM  Subtract out any segments of this class bordering
+/*  the landscape boundary or interior background classes.
+/*
+/*  3-15-94 BJM  The user now has the option of assigning a 
+/*  proportion to boundary and background edge segments.
+/*
+   &sv bound_len = 0
+   &if %.bound_weight% > 0 and %.bound_weight% < 1 &then &do
+      cursor temp declare %.cover% line rw
+      cursor temp open
+      &do &while %:temp.AML$NEXT% = .true.
+         &if %.background% = .true. &then &do
+            &if [value :temp.rite//%.patchtype%] = %.bckgrnd% or ~
+                [value :temp.left//%.patchtype%] = %.bckgrnd% &then
+                   &sv bound_len = %bound_len% + %:temp.length% 
+            &else &if [value :temp.rite//%.patchtype%] = -%.bckgrnd% or ~
+                [value :temp.left//%.patchtype%] = -%.bckgrnd% &then
+                   &sv bound_len = %bound_len% + %:temp.length% 
+         &end
+         &if %:temp.lpoly#% = 1 or %:temp.rpoly#% = 1 &then
+                &sv bound_len = %bound_len% + %:temp.length%
+         cursor temp next
+      &end
+      cursor temp close
+      cursor temp remove
+      &sv bound_len = [calc %bound_len% * %.bound_weight%]
+   &end
+   &if %.background% = .true. &then &do
+      unsel %.cover% line left//%.patchtype% = %class% and ~
+                          rite//%.patchtype% = %.bckgrnd%
+      unsel %.cover% line rite//%.patchtype% = %class% and ~
+                          left//%.patchtype% = %.bckgrnd%
+      unsel %.cover% line left//%.patchtype% = -%class% and ~
+                          rite//%.patchtype% = %.bckgrnd%
+      unsel %.cover% line rite//%.patchtype% = -%class% and ~
+                          left//%.patchtype% = %.bckgrnd%
+      unsel %.cover% line left//%.patchtype% = %class% and ~
+                          rite//%.patchtype% = -%.bckgrnd%
+      unsel %.cover% line rite//%.patchtype% = %class% and ~
+                          left//%.patchtype% = -%.bckgrnd%
+   &end
+   res %.cover% line lpoly# > 1 and rpoly# > 1
+
+   &sv edgelen = 0
+
+   &sv num = [extract 1 [show select %.cover% line]]
+   &if %num% > 0 &then &do
+      statistics %.cover% line
+         sum length
+      end
+      &sv edgelen = [show statistic 1 1]
+      &sv class_edge = [calc %edgelen% + %bound_len%]
+   &end
+   &else
+      &sv class_edge = 0
+
+   &sv iji_edge = %edgelen% 
+&end
+
+
+&if %.write_class% = .false. &then &goto done
+
+/*
+/*  Write out class level statistics
+/*
+/*  Open a temporary file that all the class stats will be
+/*  written to.  This file will be used by a C program to output
+/*  all the data. 
+/*
+&sv temp = [open %.cover%.class.out status -write]
+
+/*
+/*  landscape id 
+/*
+&sv status = [write %.file% ' ']
+&sv status = [write %temp% [quote %.land_id%]]
+
+/*
+/*  class type
+/*
+&sv status = [write %temp% [quote [value .class_name.%class%]]]
+
+/*
+/*  class area (ha), number of patches
+/*
+&sv status = [write %temp% [quote %sum_area%]]
+
+/*
+/*  total landscape area
+/*
+&sv value = [calc %.total_area% / 10000]
+&sv status = [write %temp% [quote %value%]]
+
+/*
+/*  landscape similarity (%)
+/*
+&sv status = [write %temp% [quote [value .similarity.%class%]]]
+
+/*
+/*  largest patch index (%)
+/*
+&sv value = [calc %max_area% / ( %.total_area% / 10000 ) * 100]
+&sv status = [write %temp% [quote %value%]]
+
+/*
+/* number of patches
+/*
+&sv status = [write %temp% [quote %num_patches%]]
+
+/*
+/*  patch density (# / 100 ha), mean patch size (ha)
+/*
+&sv value = [calc %num_patches% / ( %.total_area% / 10000 ) * 100]
+&sv status = [write %temp% [quote %value%]]
+
+/*
+/*  mean patch size (ha)
+/*
+&sv mean_area = [calc %sum_area% / %num_patches%]
+&sv status = [write %temp% [quote %mean_area%]]
+
+/*
+/*  patch size standard deviation (ha)
+/*
+&sv value = [calc ( %sum_area% * %sum_area% ) / %num_patches%]
+&sv stdev = [sqrt [calc ( %sum_area_sq% - %value% ) / %num_patches%]]
+&sv status = [write %temp% [quote %stdev%]]
+
+/*
+/*  patch size coefficient of variation (%)
+/*
+&sv value = [calc %stdev% / %mean_area% * 100]
+&sv status = [write %temp% [quote %value%]]
+
+/*
+/*  total class edge (m)
+/*
+&sv status = [write %temp% [quote %class_edge%]]
+
+/*
+/*  class edge density (m/ha)
+/*
+&sv value = [calc %class_edge% / ( %.total_area% / 10000 )]
+&sv status = [write %temp% [quote %value%]]
+
+/*
+/*
+/*  The edge array at this point only includes lengths of patches
+/*  inside the watershed.  However, if a landscape border was
+/*  included, it should include landscape boundary segments of
+/*  of any classes outside the landscape as well.  So add these
+/*  into the edge array (needed for interspersion/juxtaposition).  
+/*  The contrast weighted edge length also needs to be updated.
+/*
+&if %.land_border% = .true. &then &do
+   asel %.cover% line
+   res %.cover% line left//%.patchtype% = -%class% and ~
+                     rite//%.patchtype% ge 0
+   asel %.cover% line rite//%.patchtype% = -%class% and ~
+                      left//%.patchtype% ge 0
+   unsel %.cover% line rpoly# = 1 or lpoly# = 1
+   unsel %.cover% line left//%.patchtype% = -%class% and ~
+                       rite//%.patchtype% = %class%
+   unsel %.cover% line rite//%.patchtype% = -%class% and ~
+                       left//%.patchtype% = %class%
+   &if %.background% = .true. &then &do
+      asel %.cover% line rite//%.patchtype% = -%class% and ~
+                         left//%.patchtype% = %.bckgrnd%
+      asel %.cover% line left//%.patchtype% = -%class% and ~
+                         rite//%.patchtype% = %.bckgrnd%
+   &end
+   &sv numsel = [extract 1 [show select %.cover% line]]
+   &if %numsel% > 0 &then
+      &sv tt = [open %.cover%.temp.dat status -write]
+
+   &sv k = 1
+   &do &while %k% le %numsel%
+      &sv bflag = 0
+      &sv len = [show select %.cover% line %k% item length]
+      &sv r_poly = [show select %.cover% line %k% item rpoly#]
+      &sv l_poly = [show select %.cover% line %k% item lpoly#]
+
+      asel %.cover%_2 poly
+      res %.cover%_2 poly %.cover%_2# = %r_poly%
+      &sv c1 = [show select %.cover%_2 poly 1 item %.patchtype%]
+ 
+      asel %.cover%_2 poly
+      res %.cover%_2 poly %.cover%_2# = %l_poly%
+      &sv c2 = [show select %.cover%_2 poly 1 item %.patchtype%]
+
+      &if %.background% = .true. &then &do
+         &if %c1% = %.bckgrnd% or %c2% = %.bckgrnd% &then &sv bflag = 1
+         &if %c1% = -%.bckgrnd% or %c2% = -%.bckgrnd% &then &sv bflag = 1
+      &end
+
+      &if %c1% < 0 &then &sv c1 = [calc 0 - %c1%]
+      &if %c2% < 0 &then &sv c2 = [calc 0 - %c2%]
+ 
+      &if %bflag% = 0 &then &do
+         &if %c1% = %class% &then
+            &sv .edge.%c1%.%c2% = [calc [value .edge.%c1%.%c2%] + %len%]
+         &else
+            &sv .edge.%c2%.%c1% = [calc [value .edge.%c2%.%c1%] + %len%]
+      
+         &sv status = [write %tt% [quote %c1% %c2% %len%]]
+      &end
+      &if %bflag% = 1 &then
+         &sv status = [write %tt% [quote -999 -999 %len%]]
+
+      &label next_k
+      &sv k = %k% + 1
+   &end
+
+   &if %numsel% > 0 &then
+      &sv status = [close %tt%]
+
+   &if %numsel% > 0  and %.contrast_indices%  = .true. &then &do
+      &system %.path%edgecon %.edgecon_file% %.cover%.temp.dat %.cover%.edgecon ~
+%.bound_weight%
+      &sv tt = [open %.cover%.edgecon status -read]
+      &sv edgecon = [unquote [read %tt% status]]
+      &sv status = [close %tt%]
+      &sv sum_edgeden = %sum_edgeden% + %edgecon%
+   &end
+&end
+
+/*
+/*  contrast-weighted class edge density (m/ha)
+/*
+&if %.contrast_indices% = .true. &then
+   &sv value = [calc %sum_edgeden% / ( %.total_area% / 10000 )]
+&else
+   &sv value = NA
+&sv status = [write %temp% [quote %value%]]
+  
+/*
+/*  total edge contrast index (%)
+/*
+&if %.contrast_indices% = .true. &then
+   &sv value = [calc %sum_edgeden% / %contrast_edge% * 100]
+&else
+   &sv value = NA
+&sv status = [write %temp% [quote %value%]]
+
+/*
+/*  mean edge contrast index (%)
+/*
+&if %.contrast_indices% = .true. &then 
+   &sv value = [calc %sum_edgecon% / %num_patches% * 100]
+&else
+   &sv value = NA
+&sv status = [write %temp% [quote %value%]]
+
+/*
+/*  area-weighted mean edge contrast index (%)
+/*
+&if %.contrast_indices% = .true. &then
+   &sv value = [calc %sum_wt_edgecon% * 100]
+&else
+   &sv value = NA
+&sv status = [write %temp% [quote %value%]]
+
+/*
+/*  landscape shape index
+/*
+&sv value = [calc %lshape_edge% / ( 3.5449 * [sqrt %.total_area%] )]
+&sv status = [write %temp% [quote %value%]]
+
+/*
+/*  mean shape index
+/*
+&sv value = [calc %sum_shape% / %num_patches%]
+&sv status = [write %temp% [quote %value%]]
+
+/*
+/*  area-weighted mean shape index
+/*
+&sv status = [write %temp% [quote %sum_wt_shape%]]
+
+/*
+/*  double log fractal dimenstion
+/*
+/*  Call a C program to calculate the slope of the regression of log
+/*  area on log perimeter for this class.  
+/*
+&if %num_patches% > 1 &then &do
+   &system %.path%regress %.cover%.classlogs %.cover%.regress
+   &sv tt = [open %.cover%.regress status -read]
+   &sv offset = [unquote [read %tt% status]]
+   &sv slope = [unquote [read %tt% status]]
+   &sv status = [close %tt%]
+   &if %slope% = 0 &then 
+      &sv value = NA
+   &else
+      &sv value = [calc 2.0 / %slope%]
+&end
+&else
+   &sv value = NA
+
+&sv status = [write %temp% [quote %value%]]
+
+/*
+/*  mean patch fractal dimension
+/*
+&if %sum_fractal% > 0 &then
+   &sv value = [calc %sum_fractal% / %num_patches%]
+&else
+   &sv value = -99
+&sv status = [write %temp% [quote %value%]]
+
+/*
+/*  area-weighted mean fractal
+/*
+&if %sum_wt_fract% > 0 &then
+   &sv value = %sum_wt_fract%
+&else
+   &sv value = -99 
+&sv status = [write %temp% [quote %value%]]
+
+/*
+/*  landscape core area similarity (%)
+/*
+&if %sum_corearea% > 0 &then 
+   &sv value = [calc %sum_corearea% / ( %.total_area% / 10000 ) * 100]
+&else
+   &sv value = 0
+&sv status = [write %temp% [quote %value%]]
+
+/*
+/*  total core area (ha)
+/*
+&sv status = [write %temp% [quote %sum_corearea%]]
+
+/*
+/*  number of core areas
+/*
+&sv status = [write %temp% [quote %sum_core_patches%]]
+
+/*
+/*  core area density (# / 100 ha)
+/*
+&if %sum_core_patches% > 0 &then 
+   &sv value = [calc %sum_core_patches% / ( %.total_area% / 10000 ) * 100]
+&else
+   &sv value = 0
+&sv status = [write %temp% [quote %value%]]
+
+/*
+/*  mean core area 1 (ha)
+/*
+&if %sum_corearea% > 0 &then 
+   &sv mean_area = [calc %sum_corearea% / %num_patches%]
+&else
+   &sv mean_area = 0
+&sv status = [write %temp% [quote %mean_area%]]
+
+/*
+/*  core area standard deviation 1 (ha)
+/*
+&if %sum_corearea% > 0 &then &do
+   &sv value = [calc ( %sum_corearea% * %sum_corearea% ) / %num_patches%]
+   &sv stdev = [sqrt [calc ( %sum_core_sq% - %value% ) / %num_patches%]]
+&end
+&if %sum_corearea% = 0 &then 
+   &sv stdev = 0
+&sv status = [write %temp% [quote  %stdev%]]
+
+/*
+/*  core area coefficient of variation 1 (%)
+/*
+&if %sum_core_patches% > 0 &then
+   &sv value = [calc %stdev% / %mean_area% * 100]
+&else
+   &sv value = 0
+&sv status = [write %temp% [quote %value%]]
+
+/*
+/*  mean core area 2 (ha)
+/*
+&if %sum_core_patches% > 0 &then
+   &sv mean_area = [calc %sum_corearea% / %sum_core_patches%]
+&else
+   &sv mean_area = 0
+&sv status = [write %temp% [quote %mean_area%]]
+
+/*
+/*  core area standard deviation 2 (ha)
+/*
+&if %sum_core_patches% > 0 &then &do
+   &sv value = [calc ( %sum_corearea% * %sum_corearea% ) / %sum_core_patches%]
+   &sv stdev = [sqrt [calc ( %sum_core_sq% - %value% ) / %sum_core_patches%]]
+&end
+&else
+   &sv stdev = 0
+&sv status = [write %temp% [quote  %stdev%]]
+
+/*
+/*  coefficient of variation 2 (%)
+/*
+&if %sum_core_patches% > 0 &then 
+   &sv value = [calc %stdev% / %mean_area% * 100]
+&else
+   &sv value = 0
+&sv status = [write %temp% [quote  %value%]]
+
+/*
+/*  total core area index (%)
+/*
+&if %sum_corearea% > 0 &then 
+   &sv value = [calc %sum_corearea% / %sum_area% * 100]
+&else
+   &sv value = 0
+&sv status = [write %temp% [quote %value%]]
+
+/*
+/*  mean core area index (%)
+/*
+&if %sum_corearea% > 0 &then
+   &sv value = [calc %sum_cindex% / %num_patches%] 
+&else
+   &sv value = 0
+&sv status = [write %temp% [quote %value%]]
+
+/*
+/*  interspersion/juxtaposition index 
+/*
+/*  Note:  only defined for more than two patches (because
+/*  the denominator  is "log(m-1)").
+/*
+&sv num = %.total_patch_types% - 1
+&if %num% <= 1 &then &goto skipit
+
+&sv j = %.min_class%
+&do &while %j% le %.max_class%
+   &if [value .edge.%class%.%j%] = 0 &then &goto nextone
+
+   &if %class% = %j% &then &goto nextone
+   &sv value = [value .edge.%class%.%j%] / %iji_edge%
+   &sv log_value = [calc ln %value%]
+   &sv sum_iji = [calc %sum_iji% + ( %value% * %log_value% )]
+
+   &label nextone
+   &sv j = %j% + 1
+&end
+
+&label skipit
+&if %num% ge 2 &then &do
+   &sv log_num = [calc ln %num%]
+   &sv iji = [calc ( 0 - %sum_iji% ) / %log_num% * 100]
+&end
+&else 
+   &sv iji = NA
+
+&sv status = [write %temp% [quote %iji%]]
+
+/*
+/*  Call a C program to format indices for output files.  AML's
+/*  formatting capabilities are very limited.
+/*
+&sv status = [close %temp%]
+
+&system %.path%wrtclass %.cover%.class.out %.ffile% %.cfile% %.class_init%
+&sv .class_init = 0
+
+&sv status = [write %.file% ' ']
+
+&label done
+
+&delvar max_area sum_area_sq sum_shape sum_wt_shape sum_fractal
+&delvar sum_core_patches sum_corearea sum_core_sq sum_cindex
+&delvar sum_edgecon sum_wt_edgecon sum_edgeden sum_iji 
+&delvar sum_nndist sum_nndist_sq i j status temp
+&delvar num_patches area shape shape2 value sum_area
+
+&return

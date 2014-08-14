@@ -1,0 +1,309 @@
+/**********************************************************
+/*  File Name:  PATCH.AML
+/*
+/*  Purpose:  Calculate and write patch characteristics.
+/*
+/*  Passed Parameters:
+/*	class:	      integer value of the current class
+/*      num_patches:  number of patches in this class
+/*
+/*  Programmer:  Barbara Marks
+/*
+/*  Date:  January 1993
+/*
+/*  ID:  $Id: patch.aml,v 2.1 1994/03/30 19:46:46 marks Exp $
+/**********************************************************
+
+&args class num_patches
+
+&if [null %class%] &then &do
+   &type FATAL ERROR!  Must pass class, num_patches to patch.aml!!
+   &sv .err_flag = -1
+   &return
+&end 
+ 
+
+/*
+/*  Open a file that will contain the logs of area and perimeter
+/*  for all patches in the landscape.  This will be used in the
+/*  calculation of the "double-log fractal index".
+/*
+&sv landlogs = [open %.cover%.landlogs status -append]
+
+
+/*
+/*  Open a file that will contain the logs of area and perimeter
+/*  for all patches in this class.  This will be used in the
+/*  calculation of the class level "double-log fractal index". 
+/*
+&sv classlogs = [open %.cover%.classlogs status -write]
+ 
+/*
+/*  Get the area and standard deviation of the area for this class.
+/*
+statistics %.cover% poly
+   sum area
+end
+
+&sv classarea  = [show statistic 1 1] 
+&sv .class_area.%class% = [calc %classarea% / 10000]
+
+
+/*    
+/*  landscape similarity
+/*  3-24-94  Renamed to Percent of Landscape
+/*
+&sv .similarity.%class% = [calc %classarea% / %.total_area% * 100]
+
+
+/*
+/*  If a character descriptor attribute was specified, get the
+/*  patch type name (class).  Otherwise, just print out the class
+/*  number.
+/*
+&if %.classnames% = .true. &then
+   &sv .class_name.%class% = [show select %.cover% poly 1 item %.descriptor%]
+&else
+   &sv .class_name.%class% = %class%
+&sv desc = [value .class_name.%class%]
+
+
+/*
+/*  Write header PATCH INDICES to output .full file, if requested.
+/*
+&if %.write_patch% = .true. &then &do
+   &sv file = [open %.ffile% status -append]
+   &if %status% ne 0 &then &do
+      &type ERROR! Can not open file: %.ffile%
+      &stop 
+   &end
+   &sv status = [write %file% ' ']
+   &sv status = [write %file% 'PATCH INDICES']
+   &sv status = [close %file%]
+&end
+
+
+
+/*
+/*  loop over all patches in this class
+/*
+&sv j = 1
+&do &while %j% le %num_patches%
+
+   &sv patchid = [show select %.cover% poly %j% item %.patch%]
+
+   &sv area = [show select %.cover% poly %j% item area]
+   &sv .area.%j% = %area% / 10000
+
+   &sv perimeter = [show select %.cover% poly %j% item perimeter]
+   &sv .perimeter.%j% = %perimeter%
+
+
+/*
+/*  shape index
+/*
+   &sv .shape.%j% = [calc %perimeter% / ( 3.5449 * [sqrt %area%] )]
+
+
+/*
+/*  fractal dimension
+/*
+   &sv logperm = [calc ln %perimeter%]
+   &sv logarea = [calc ln %area%]
+
+   &if %area% > 1 &then 
+      &sv .fractal.%j% = [calc 2.0 * %logperm% / %logarea%]
+   &else &if %area% = 1 and %perimeter% = 3.545 &then 
+      &sv .fractal.%j% = 1.0
+   &else
+      &sv .fractal.%j% = -99
+
+   &sv status = [write %classlogs% [quote %logperm% %logarea%]]
+   &sv status = [write %landlogs% [quote %logperm% %logarea%]]
+
+/*
+/*  core area, number of core patches, core area index
+/*  
+/*  From the unioned coverage, select all the polygons with the cover#
+/*  number of this patch that are interior habitat (these polygons have
+/*  the attribute inside=1).  Complex polygons may have more than one
+/*  core area patch, so check.
+/*
+   &sv id1 = [show select %.cover% poly %j% item %.cover%#]
+   asel %.cover%_u poly
+   res %.cover%_u poly %.cover%# = %id1%
+   res %.cover%_u poly inside = 1
+
+   &sv .core_area.%j% = 0
+   &sv .corearea_index.%j% = 0
+   &sv .ncore_patches.%j% = 0
+
+   &sv num_coreareas = [extract 1 [show select %.cover%_u poly]]
+
+   &if %num_coreareas% ge 1 &then &do
+      statistics %.cover%_u poly
+         sum area
+      end
+      &sv corearea = [show statistic 1 1]
+      &sv .core_area.%j% = [calc %corearea% / 10000]
+      &sv .corearea_index.%j% = [calc ( %corearea% / %area% ) * 100]
+      &sv .ncore_patches.%j% = %num_coreareas%
+   &end
+
+
+
+/*
+/*  The following stuff needs to be done even if the user did not
+/*  specify that contrast-weighted indices should be calculated.
+/*  In order to calculate class and landscape level contagion,
+/*  information about edge lengths is needed.
+/*
+/*  edge contrast index
+/*  
+/*
+/*  Find all lines that have the the selected polygon #id on
+/*  either the right or left side of the line.
+/*
+/*  If r_poly or l_poly = 1, then this is a landscape boundary line
+/*  segment.  This will only occur is the coverage does NOT contain
+/*  a landscape border (surrounding landscape).  Since the landscape
+/*  border is not present, there is only information about one of the
+/*  classes bordering this segment.  The user selected one of two ways
+/*  to handle these types of edges:  include then (maximum contrast), 
+/*  or exclude them (zero contrast).
+/*
+/*  3-14-94 BJM  User now specifies the proportion for background and
+/*  boundary edges.
+/*
+   asel %.cover% line
+   res %.cover% line left//%.cover%# = %id1% or rite//%.cover%# = %id1%
+
+   &if %.land_border% = .false. and %.bound_weight% = 0 &then
+         unsel %.cover% line rpoly# = 1 or lpoly# = 1
+
+   &sv numsel = [extract 1 [show select %.cover% line]]
+
+/*
+/*  For each line segment, get the #id value of the polygon
+/*  on the right and left side of the line.  Then go to the
+/*  polygon coverage and find the class value for each #id.
+/*  Use the copy of the polygon coverage (cover.2), so that the
+/*  currently selected set of polygons (cover) is not changed.
+/*  Write the class values and the line segment length to 
+/*  a file.  A "C" program will use this file to calculate
+/*  edge contrast.
+/*
+   &if %.contrast_indices% = .true. &then
+      &sv temp = [open %.cover%.temp.dat status -write]
+
+   &sv k = 1
+   &do &while %k% le %numsel%
+      &sv bflag = 0
+      &sv len = [show select %.cover% line %k% item length]
+      &sv r_poly = [show select %.cover% line %k% item rpoly#]
+      &sv l_poly = [show select %.cover% line %k% item lpoly#]
+
+/*
+/*  If r_poly or l_poly = 1, then this is a landscape border line
+/*  segment.  This will only occur is the coverage does NOT contain
+/*  a landscape border (surrounding landscape) and the user selected 
+/*  to count the border as an edge (maximum contrast).
+/*
+      &if %.contrast_indices% = .true. &then &do
+         &if %r_poly% = 1 or %l_poly% = 1 &then 
+             &sv status = [write %temp% [quote -999 -999 %len%]]
+      &end 
+
+      &if %r_poly% ne 1 and %l_poly% ne 1 &then &do
+         asel %.cover%_2 poly
+         res %.cover%_2 poly %.cover%_2# = %r_poly%
+         &sv c1 = [show select %.cover%_2 poly 1 item %.patchtype%]
+
+         asel %.cover%_2 poly
+         res %.cover%_2 poly %.cover%_2# = %l_poly%
+         &sv c2 = [show select %.cover%_2 poly 1 item %.patchtype%]
+      
+         &if %.background% = .true. &then &do
+            &if %c1% = %.bckgrnd% or %c2% = %.bckgrnd% &then &sv bflag = 1
+            &if %c1% = -%.bckgrnd% or %c2% = -%.bckgrnd% &then &sv bflag = 1
+         &end
+         &if %c1% < 0 &then &sv c1 = [calc 0 - %c1%]
+         &if %c2% < 0 &then &sv c2 = [calc 0 - %c2%]
+
+         &if %.contrast_indices% = .true. &then &do
+            &if %bflag% = 1 &then
+               &sv status = [write %temp% [quote -999 -999 %len%]]
+            &if %bflag% = 0 &then
+               &sv status = [write %temp% [quote %c1% %c2% %len% ]]
+         &end
+
+         &if %bflag% = 0 &then &do
+            &if %c1% = %class% &then
+               &sv .edge.%c1%.%c2% = [calc [value .edge.%c1%.%c2%] + %len%]
+            &else
+               &sv .edge.%c2%.%c1% = [calc [value .edge.%c2%.%c1%] + %len%]
+         &end
+      &end 
+      
+      &sv k = %k% + 1
+   &end
+
+   &if %.contrast_indices% = .true. &then
+      &sv status = [close %temp%]
+
+/*
+/*  If a weight file was specified, call a "C" program to calculate 
+/*  the edge contrast index.  This program will create a file called
+/*  edgecon.dat that contains the edge contrast value for this patch.
+/*  (A C program was used, because it was easier and faster to handle
+/*  a 2-D array in C than in arc.)
+/*
+
+   &if %.contrast_indices% = .true. &then &do
+      &system %.path%edgecon %.edgecon_file% %.cover%.temp.dat ~
+%.cover%.edgecon %.bound_weight%
+      &sv temp = [open %.cover%.edgecon status -read]
+      &sv edgecon = [unquote [read %temp% status]]
+      &sv status = [close %temp%]
+  
+      &sv .edgecon.%j% = [calc %edgecon% / %perimeter%]
+      &sv .contrast.%j% = %edgecon%
+      &sv edge_con = [value .edgecon.%j%] * 100
+   &end
+   &else
+      &sv edge_con = NA
+
+
+   &if %.write_patch% = .false. &then &goto nextj
+
+/* 
+/*  Write indices to a temporary file, then call a C program
+/*  to format and write the data to the output files.  AML
+/*  has poor data formatting and output capabilites.
+/*
+   &sv temp = [open %.cover%.patch.out status -write]
+   &sv status = [write %temp% [quote %.land_id%]]
+   &sv status = [write %temp% [quote %patchid%]] 
+   &sv status = [write %temp% [quote %desc%]]
+   &sv status = [write %temp% [quote [value .area.%j%]]]
+   &sv status = [write %temp% [quote [value .similarity.%class%]]]
+   &sv status = [write %temp% [quote %perimeter%]] 
+   &sv status = [write %temp% [quote %edge_con%]]
+   &sv status = [write %temp% [quote [value .shape.%j%]]]
+   &sv status = [write %temp% [quote [value .fractal.%j%]]]
+   &sv status = [write %temp% [quote [value .core_area.%j%]]]
+   &sv status = [write %temp% [quote [value .ncore_patches.%j%]]]
+   &sv status = [write %temp% [quote [value .corearea_index.%j%]]]
+   &sv status = [close %temp%]
+      
+   &system %.path%wrtpatch %.cover%.patch.out %.ffile% %.pfile% %.patch_init%
+   &sv .patch_init = 0
+
+   &label nextj
+   &sv j = %j% + 1
+&end                      /* end of loop over #patches/class
+
+&sv status = [close %landlogs%]
+&sv status = [close %classlogs%]
+
+&return

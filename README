@@ -1,0 +1,116 @@
+						December 3, 1995
+
+	The documentation distributed electronically is not the
+most up-to-date.  There are a few figures that need to be updated, 
+and the discussion of the way background is handled is not correct.
+However, current documentation is available -- the fragstats
+manual is now available as a PNW Forest Service Technical Report
+and can be obtained by calling (503) 326-7128 and requesting a
+copy of report PNW-GTR-351.
+
+Barbara
+********************************************************************
+						December 31, 1994
+
+	I have done some limited testing with fragstats in 
+arc/info version 7.0 and it now appears to work (after modifying
+one of the C programs).  Let me know if you have any trouble:
+
+		marks@fsl.orst.edu
+
+
+*********************************************************************
+
+						October 25, 1994
+
+	I have removed the directories raster, vector, man, and 
+pcversion.  I realize what a pain it was to "cd" to each subdirectory
+and "mget *".  All the software is now contained in one tar or pkzip
+file.   The directory structure has been preserved in these files.
+
+    *  get frag.tar if you are ftp'ing from a Unix machine
+	    to extract the files:
+		 tar xvf frag.tar 
+
+    *  get frag.zip if you are ftp'ing from a DOS machine
+            to extract the files:
+		 pkunzip -d frag.zip
+
+	   ("pkunzip.exe" is also available from this 
+             directory if you need it)
+
+
+Remember to set the mode to binary!
+
+	Also note that a postscript printer is required to print the 
+documentation files in the "man" directory.
+
+*********************************************************************
+
+						October 3, 1994
+
+If the landscape you are working with has background (area outside
+the landscape of interest) please read this:
+
+
+
+
+	Fragstats expects a positive value for background to be
+entered at the prompt "Enter value for background".  Fragstats expects
+background patches inside the landscape to be set to a positive value
+and those outside the landscape and in the landscape border to be set
+to the negative of this value.  If your landscape has no interior 
+background patches, but all cells outside the landscape of interest
+have been set to -9999, you must still enter 9999 at the prompt. 
+
+	I have found this postive/negative background convention
+difficult to follow sometimes.  In many of the images I have worked
+with lately, all background has been classified to one value, 
+regardless of whether is interior or exterior to the landscape of 
+interest.  Therefore, I made the following changes to fragstats:
+
+	If only one type of background is found when reading in the 
+image (only interior or only exterior background), fragstats will now
+verify that each patch has been classified correctly.  If fragstats 
+finds that an interior background patch has been incorrectly classified 
+as exterior background, it will be re-classified as interior background 
+and a message will be issued.  Incorrectly classified interior background
+patches will also be re-classified as exterior, if necessary.  A warning
+will be issued about any questionable patches (background patches along
+the landscpae boundary).  
+
+	If background patches along the landscape boundary are not
+classified correctly, the following indices may not be calculated
+correctly (class and landscape level):  landscape shape index, total
+edge, edge density, contrast weighted edge density, and total edge
+contrast index.  Beware!
+
+						Barbara Marks
+
+******************************************************************************
+
+							April 10, 1994
+
+
+			    FRAGSTATS 2.0
+
+
+	The 2.0 release of FRAGSTATS differs from the previous version in
+only minor ways, yet because so many files were modified, we felt a new
+release was in order.  Several "bugs" have been corrected.  The most important
+change is the added option to treat a specified proportion of the landscape
+boundary and background edge (instead of just all or none) as true edge in the 
+edge metrics.  This fraction is also used as the edge contrast weight for
+landscape boundary and background edge segments in the calculation of edge
+contrast metrics.  In addition, the convention for naming the output file
+containing patch ID's in the raster version has been modified to comply with
+DOS requirements.  Similarly, the output file name extensions in PC raster
+version only have been shortened and renamed to comply with DOS requirements
+and to avoid conflicts with ERDAS naming conventions.  The nearest neighbor
+algorithm has been modified slightly to compute actual edge-to-edge distance
+(previous version used cell midpoints rather than edge).
+
+	We hope that FRAGSTATS is of great assistance to you in your work!
+
+
+				       Kevin McGarigal and Barbara Marks

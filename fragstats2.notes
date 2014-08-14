@@ -1,0 +1,26 @@
+
+							April 10, 1994
+
+
+			    FRAGSTATS 2.0
+
+
+	The 2.0 release of FRAGSTATS differs from the previous version in
+only minor ways, yet because so many files were modified, we felt a new
+release was in order.  Several "bugs" have been corrected.  The most important
+change is the added option to treat a specified proportion of the landscape
+boundary and background edge (instead of just all or none) as true edge in the 
+edge metrics.  This fraction is also used as the edge contrast weight for
+landscape boundary and background edge segments in the calculation of edge
+contrast metrics.  In addition, the convention for naming the output file
+containing patch ID's in the raster version has been modified to comply with
+DOS requirements.  Similarly, the output file name extensions in PC raster
+version only have been shortened and renamed to comply with DOS requirements
+and to avoid conflicts with ERDAS naming conventions.  The nearest neighbor
+algorithm has been modified slightly to compute actual edge-to-edge distance
+(previous version used cell midpoints rather than edge).
+
+	We hope that FRAGSTATS is of great assistance to you in your work!
+
+
+				       Kevin McGarigal and Barbara Marks
