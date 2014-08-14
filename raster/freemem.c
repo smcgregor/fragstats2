@@ -16,32 +16,32 @@
 
 void free_memory()
 {
-	cfree (image);
-	if (id_image != 2) cfree (id);
+	free (image);
+	if (id_image != 2) free (id);
 
-	cfree (name);
-	cfree (stackx); 
-	cfree (stacky);
-	cfree (check);
-	cfree (ext_npts);
-	cfree (core_area_patches);
-	cfree (patchid);
-	cfree (area);
-	cfree (perimeter);
-	cfree (core_area);
-	cfree (core_area_index);
-	cfree (shape);
-	cfree (fractal);
-	cfree (class_area);
-	cfree (xx);
-	cfree (yy);
-	cfree (edge);
-	cfree (edgetype);
-	cfree (patchtype);
-	if (do_nndist) cfree (near_neigh_dist);
-	if (proximity) cfree (prox);
+	free (name);
+	free (stackx); 
+	free (stacky);
+	free (check);
+	free (ext_npts);
+	free (core_area_patches);
+	free (patchid);
+	free (area);
+	free (perimeter);
+	free (core_area);
+	free (core_area_index);
+	free (shape);
+	free (fractal);
+	free (class_area);
+	free (xx);
+	free (yy);
+	free (edge);
+	free (edgetype);
+	free (patchtype);
+	if (do_nndist) free (near_neigh_dist);
+	if (proximity) free (prox);
 	if (contrast_indices) {
-	   cfree (edge_contrast);
-	   cfree (contrast);
+	   free (edge_contrast);
+	   free (contrast);
 	}
 }

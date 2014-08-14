@@ -125,8 +125,8 @@ short	*imageptr;
 	}
 	
 	fclose (out);
-	cfree (data);
-	cfree (value);
-	cfree (repeat);
+	free (data);
+	free (value);
+	free (repeat);
 }
 

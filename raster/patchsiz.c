@@ -173,9 +173,9 @@ short   class;
 			    else 
 			        new_ck[nn] = TRUE;
 			  }
-			  cfree (check);
-			  cfree (stackx);
-			  cfree (stacky);
+			  free (check);
+			  free (stackx);
+			  free (stacky);
 			  check = new_ck;
 			  stackx = new_x;
 			  stacky = new_y;
@@ -202,9 +202,9 @@ short   class;
 	   }
 	}
 
-	cfree (stackx);
-	cfree (stacky);
-	cfree (check);
+	free (stackx);
+	free (stacky);
+	free (check);
 
 	return (numpts);
 }

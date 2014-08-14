@@ -196,10 +196,10 @@ void get_sizes()
 	}
 
 
-	cfree (npatches);
-	cfree (all_classes);
-	cfree (class_exists);
-	cfree (npts);
+	free (npatches);
+	free (all_classes);
+	free (class_exists);
+	free (npts);
 
 	return;
 }

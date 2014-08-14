@@ -13,7 +13,7 @@
 #CFLAGS = -v -c -O -g -ansi -W -Wall -Wshadow -Wconversion -Wredundant-decls -finline-functions
 CFLAGS = -c -O
 
-CC = gcc
+CC = gcc -m32
 
 HEADERS = stats.h routines.h erdas.h
 

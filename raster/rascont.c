@@ -132,8 +132,8 @@ float raster_contagion ()
  */
 	contagion = (sum / (2.0 * log((double)total_num_classes))) + 1.0;
 
-	cfree (adj);
-	cfree (carea);
+	free (adj);
+	free (carea);
 
 	return (contagion);
 }

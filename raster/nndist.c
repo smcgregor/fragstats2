@@ -61,8 +61,8 @@ void near_neigh_distance ()
  */
 
 	if (num_patches == 1) {
-	   if (patches[0].px) cfree(patches[0].px);
-	   if (patches[0].py) cfree(patches[0].py);
+	   if (patches[0].px) free(patches[0].px);
+	   if (patches[0].py) free(patches[0].py);
 	   return;
 	}
 /*
@@ -266,11 +266,11 @@ void near_neigh_distance ()
  *  TM 01/10/93
  */
 	for (i=0; i<num_patches; i++) {
-	   cfree (patches[i].px); 
+	   free (patches[i].px); 
 	   patches[i].px = NULL;
-	   cfree (patches[i].py);
+	   free (patches[i].py);
 	   patches[i].py = NULL;
 	}
-	cfree (distance);
+	free (distance);
 	distance = NULL;
 }

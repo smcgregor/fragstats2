@@ -259,11 +259,11 @@ int	patch;
  */
 	if (do_nndist) { /* TM 28/09/93 */
 	   if (patches[patch].px) {
-	      cfree(patches[patch].px);
+	      free(patches[patch].px);
 	      patches[patch].px = NULL;
 	   }
 	   if (patches[patch].py) {
-	      cfree(patches[patch].py);
+	      free(patches[patch].py);
 	      patches[patch].py = NULL;
 	   }
 	   patches[patch].px = (short*) calloc((unsigned)exterior,sizeof(short));

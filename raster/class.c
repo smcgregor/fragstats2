@@ -198,8 +198,8 @@ short	index;
  *  Return if the user does not want to write out class statistics.
  */
 	if (!class_stats) {
-	   cfree(ptrx);
-	   cfree(ptry);
+	   free(ptrx);
+	   free(ptry);
 	   return;
 	}
 
@@ -649,7 +649,7 @@ short	index;
 	fclose (out1);
 	fclose (out2);
 
-	cfree (ptrx);
-	cfree (ptry);
+	free (ptrx);
+	free (ptry);
 }
 

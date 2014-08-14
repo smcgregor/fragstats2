@@ -171,8 +171,8 @@ int    numpts;
 	      }
 	   }
 	}
-	cfree (temp_x);
-	cfree (temp_y);
+	free (temp_x);
+	free (temp_y);
 
 /*
  *  Return the number of core area patches in this patch.

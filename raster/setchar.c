@@ -32,7 +32,7 @@ char	*value;
 /* 
  *  Free the previous label (if any) 
  */
-	if (arrayptr[row]) cfree(arrayptr[row]);
+	if (arrayptr[row]) free(arrayptr[row]);
 	arrayptr[row] = NULL;
 
 /* 
